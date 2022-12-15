@@ -1,0 +1,237 @@
+@font-face {
+    font-family: Aeonik-Regular;
+    src: url("../../../assets/fonts/Aeonik-Regular.otf") format("opentype");
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Aeonik-Regular';
+    scroll-behavior: smooth;
+
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background: #0E1116;
+        color: rgba(255, 255, 255, 0.7);
+        font-family: 'Aeonik-Regular';
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    body {
+        background: #ddd;
+        color: black;
+        font-family: 'Aeonik-Regular';
+    }
+}
+
+.loader-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: -1;
+    display: none;
+}
+
+.loader {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid black;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.terminal::-webkit-scrollbar {
+    display: none;
+}
+
+.terminal {
+    box-sizing: border-box;
+    align-items: flex-start;
+    padding: 24px;
+    gap: 8px;
+    position: absolute;
+    width: calc(100% - 52px);
+    height: 379px;
+    left: 26px;
+    top: 25px;
+    background: rgba(13, 15, 20, 0.6);
+    border: 1px solid rgba(77, 78, 83, 0.2);
+    border-radius: 16px;
+    overflow: hidden;
+    display: block;
+    /*
+    flex-direction: column;
+    */
+    overflow-y: scroll;
+    scroll-behavior: smooth;
+    justify-content: flex-end;
+}
+
+span {
+    width: calc(100% - 26px);
+    display: block;
+    margin-left: 13px;
+    font-size: 14px;
+}
+
+.extra-container {
+    margin-bottom: 8px;
+    display: block;
+    position: absolute;
+    top: 400px;
+    margin-left: 34px;
+    width: calc(100% - 64px);
+}
+
+.extra-container input {
+    width: 100%;
+    margin-top: 6px;
+    background: #0E1116;
+    height: 25px;
+    color: #bfb293;
+    box-shadow: none;
+    border: none;
+    padding-inline-start: 6px;
+    margin-bottom: 2px;
+}
+
+input,
+textarea,
+[contenteditable] {
+    caret-color: rgba(13, 15, 20, 0.6);
+}
+
+input:focus {
+    outline: none !important;
+}
+
+.extra-container label {
+    font-size: 12px;
+    display: block;
+    margin-left: 10px;
+    margin-top: 10px;
+}
+
+.android-clean-wrapper {
+    margin-top: 468px;
+    margin-left: 32px;
+}
+
+
+.android-clean-title {
+    font-family: 'Aeonik';
+    font-style: normal;
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 22px;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    letter-spacing: -0.02em;
+    color: #FFFFFF;
+    flex: none;
+    order: 0;
+    flex-grow: 0;
+    margin-bottom: 16px;
+    margin-left: 4px;
+}
+
+.ios-clean-wrapper {
+    margin-top: 32px;
+    margin-left: 32px;
+}
+
+.ios-clean-title {
+    font-family: 'Aeonik';
+    font-style: normal;
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 22px;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    letter-spacing: -0.02em;
+    color: #FFFFFF;
+    flex: none;
+    order: 0;
+    flex-grow: 0;
+    margin-bottom: 16px;
+    margin-left: 4px;
+}
+
+.clean-type {
+    /* Auto layout */
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 16px;
+    gap: 16px;
+    height: 51px;
+    overflow-y: scroll;
+    background: rgba(30, 31, 35, 0.2);
+    border: 1px solid #1A1B21;
+    border-radius: 8px;
+    flex: none;
+    order: 2;
+    align-self: stretch;
+    flex-grow: 0;
+    margin-bottom: 8px;
+    width: calc(100% - 32px);
+}
+
+.clean-type--active {
+    background: rgba(86, 99, 217, 0.12) !important;
+    border: 1px solid #5663D9 !important;
+}
+
+.clean-type-img {
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    right: 70px;
+}
+
+.clean-type-img--active {
+    display: none;
+}
+
+.start-cleaner {
+    width: 124px;
+    height: 35px;
+    background: #5663D9;
+    border: 1px solid #5663D9;
+    border-radius: 8px;
+    margin-left: auto;
+    margin-right: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Aeonik';
+    font-style: normal;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 19px;
+    text-align: center;
+    letter-spacing: -0.02em;
+    color: #FFFFFF;
+    flex: none;
+    order: 0;
+    flex-grow: 0;
+}

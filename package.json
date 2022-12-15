@@ -1,0 +1,44 @@
+{
+  "name": "ionic3-project-cleaner",
+  "version": "1.0.0",
+  "main": "app/src/main/main.js",
+  "license": "MIT",
+  "devDependencies": {
+    "@electron-forge/cli": "^6.0.3",
+    "@electron-forge/maker-deb": "^6.0.3",
+    "@electron-forge/maker-rpm": "^6.0.3",
+    "@electron-forge/maker-squirrel": "^6.0.3",
+    "@electron-forge/maker-zip": "^6.0.3",
+    "electron": "^22.0.0",
+    "electron-devtools-installer": "^3.2.0"
+  },
+  "scripts": {
+    "electron-start": "set NODE_ENV=development&&electron .",
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
+  },
+  "dependencies": {
+    "child_process": "^1.0.2",
+    "chokidar": "^3.5.3",
+    "electron-log": "^4.4.8",
+    "electron-reload": "^2.0.0-alpha.1",
+    "electron-search-devtools": "^1.8.7",
+    "electron-squirrel-startup": "^1.0.0",
+    "fs": "0.0.1-security",
+    "get-os-info": "^1.0.2",
+    "nodemon": "^2.0.20",
+    "remote": "^0.0.7",
+    "request": "^2.88.2",
+    "yarn": "^1.22.19"
+  },
+  "mac": {
+    "target": {
+      "target": "default",
+      "arch": [
+        "x64",
+        "arm64"
+      ]
+    }
+  }
+}
