@@ -41,24 +41,12 @@ const config_path = path.join(__dirname, '../config');
                 if (write.error) {
                     return write;
                 }
-
-                /*    await new ChildProcess().execCommand('cd ' + config.currentPath, (event) => {
-                        if (event.error) {
-                            return {error: true, data: null, message: 'We can`r enter current folder!'};
-                        }
-                        if (event.type === 'stdout:end' && !event.error && event.data !== '') {
-                            return {
-                                error: false,
-                                data: event.data.trim()
-                            };
-                        }
-                        if (event.type === 'stderr:end' && !event.error && event.data !== '') {
-                            return {
-                                error: false,
-                                data: event.data.trim()
-                            };
-                        }
-                    }, mainWindow);*/
+                await new ChildProcess().executeCommand(
+                    mainWindow,
+                    'cd ' + config.currentPath,
+                    null,
+                    'You do not have a Brew version installed on your computer.'
+                );
             }
         } else {
             await openDragDropWindow();

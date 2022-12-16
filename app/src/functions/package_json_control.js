@@ -1,4 +1,4 @@
-const { FsManager } = require('./fs-manager');
+const {FsManager} = require('./fs-manager');
 const path = require('path');
 
 class PackageJsonManager {
@@ -8,6 +8,7 @@ class PackageJsonManager {
     package_json_dependencies = null;
     package_json_devDependencies = null;
     node_modules_dirs = null;
+    plugins_dirs = null;
 
     constructor() {
     }
@@ -31,13 +32,16 @@ class PackageJsonManager {
             }
 
             const node_modules = await new FsManager().readDir(this.config.project_path + '/node_modules');
+            const plugins = await new FsManager().readDir(this.config.project_path + '/plugins');
             this.node_modules_dirs = node_modules.data;
+            this.plugins_dirs = plugins.data;
             resolve({
                 data: {
                     config: this.config,
                     package_json_dependencies: this.package_json_dependencies,
                     package_json_devDependencies: this.package_json_devDependencies,
-                    node_modules_dirs: this.node_modules_dirs
+                    node_modules_dirs: this.node_modules_dirs,
+                    plugins_dirs: this.plugins_dirs
                 }, error: false
             });
         });
@@ -56,10 +60,10 @@ class PackageJsonManager {
     get_package_json_package(plugin_name) {
         let result = false;
         if (this.package_json_devDependencies[plugin_name]) {
-            return { data: this.package_json_devDependencies[plugin_name], error: false };
+            return {data: this.package_json_devDependencies[plugin_name], error: false};
         }
         if (this.package_json_dependencies[plugin_name]) {
-            return { data: this.package_json_dependencies[plugin_name], error: false };
+            return {data: this.package_json_dependencies[plugin_name], error: false};
         }
         return {
             data: this.package_json_dependencies[plugin_name],
@@ -92,4 +96,4 @@ class PackageJsonManager {
     }
 }
 
-module.exports = { PackageJsonManager };
+module.exports = {PackageJsonManager};

@@ -10,6 +10,12 @@ class CordovaManager {
     system_info = {name: null, version: null};
     osPlatform = os.platform();
     childManager = new ChildProcess();
+    consoleType = {
+        command: "command",
+        output: "output",
+        error: "error",
+        info: "info"
+    }
 
     constructor() {
         if (this.osPlatform === 'win32' || process.env.OSTYPE === 'cygwin' || process.env.OSTYPE === 'msys') {
@@ -25,139 +31,76 @@ class CordovaManager {
 
     async getCordovaVersion(mainWindow) {
         return new Promise(async (resolve) => {
-            await this.childManager.execCommand('cordova -v', async (event) => {
-                if (event.error) {
-                    if (event.message.includes('nameMap.')) {
-                        return resolve({error: true, data: null, message: 'nameMap ERROR'});
-                    } else {
-                        return resolve({error: true, data: null, message: 'Cordova not install!'});
-                    }
-                }
-                if (event.type === 'stdout:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: event.data.trim()
-                    });
-                }
-                if (event.type === 'stderr:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: event.data.trim()
-                    });
-                }
-            }, mainWindow);
+            await this.sendListen(mainWindow, 'Checking Cordova version!', this.consoleType.info);
+            const cordovaVersion = await this.childManager.executeCommand(
+                mainWindow,
+                'cordova -v',
+                'export NVM_DIR="$HOME/.nvm"\n' +
+                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                'You do not have a Cordova version installed on your computer.'
+            );
+            return resolve(cordovaVersion);
         });
     }
 
     async installCordovaRes(mainWindow) {
         return new Promise(async (resolve) => {
-            const command = 'npm install -g cordova-res --unsafe-perm=true';
-            await this.childManager.execCommand(command, (event) => {
-                if (event.error) {
-                    return resolve({error: true, data: null, message: 'Cordova res not install!'});
-                }
-                if (event.type === 'stdout:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: event.data.trim()
-                    });
-                }
-                if (event.type === 'stderr:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: event.data.trim()
-                    });
-                }
-            }, mainWindow);
+            await this.sendListen(mainWindow, 'Cordova is installing!', this.consoleType.info);
+            const installCordovaRes = await this.childManager.executeCommand(
+                mainWindow,
+                'unset npm_config_prefix&&npm install -g cordova-res --unsafe-perm=true',
+                'export NVM_DIR="$HOME/.nvm"\n' +
+                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                'When try to install cordova res. Something get wrong!'
+            );
+            return resolve(installCordovaRes);
         });
     }
 
     async installCordova(mainWindow, cordova_version = 10) {
         return new Promise(async (resolve) => {
-            const command = 'npm install -g cordova@' + cordova_version + ' --unsafe-perm=true';
-            await this.childManager.execCommand(command, (event) => {
-                if (event.error) {
-                    return resolve({error: true, data: null, message: 'Cordova not install!'});
-                }
-                if (event.type === 'stdout:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: event.data.trim()
-                    });
-                }
-                if (event.type === 'stderr:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: event.data.trim()
-                    });
-                }
-            }, mainWindow);
+            await this.sendListen(mainWindow, 'Cordova is installing!', this.consoleType.info);
+            const installCordova = await this.childManager.executeCommand(
+                mainWindow,
+                'unset npm_config_prefix&&npm install -g cordova@' + cordova_version + ' --unsafe-perm=true',
+                'export NVM_DIR="$HOME/.nvm"\n' +
+                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                'When try to install cordova. Something get wrong!'
+            );
+            return resolve(installCordova);
         });
     }
 
     async getCordovaResVersion(mainWindow) {
         return new Promise(async (resolve) => {
-            await this.childManager.execCommand('cordova-res -v', (event) => {
-                if (event.error) {
-                    return resolve({error: true, data: null, message: 'Cordova res not install!'});
-                }
-                if (event.type === 'stdout:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: event.data.trim()
-                    });
-                }
-                if (event.type === 'stderr:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: event.data.trim()
-                    });
-                }
-            }, mainWindow);
-        });
-    }
-
-    async getNpmVersion() {
-        return new Promise(async (resolve) => {
-            await this.childManager.execCommand('npm -v', (event) => {
-                if (event.error) {
-                    return resolve({error: true, data: null, message: 'Npm not install!'});
-                }
-                if (event.type === 'stdout:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: event.data.trim()
-                    });
-                }
-                if (event.type === 'stderr:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: event.data.trim()
-                    });
-                }
-            });
+            await this.sendListen(mainWindow, 'Trying to get cordova res version!', this.consoleType.info);
+            const installCordova = await this.childManager.executeCommand(
+                mainWindow,
+                'cordova-res -v',
+                'export NVM_DIR="$HOME/.nvm"\n' +
+                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                'You do not have a Cordova Res version installed on your computer.'
+            );
+            return resolve(installCordova);
         });
     }
 
     async getNpmPath(mainWindow) {
         return new Promise(async (resolve) => {
-            await this.childManager.execCommand('which npm', (event) => {
-                if (event.error) {
-                    return resolve({error: true, data: null, message: 'Npm not install!'});
-                }
-                if (event.type === 'stdout:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: event.data.trim()
-                    });
-                }
-                if (event.type === 'stderr:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: event.data.trim()
-                    });
-                }
-            }, mainWindow);
+            await this.sendListen(mainWindow, 'Npm path is fetching!', this.consoleType.info);
+            const getNpmPath = await this.childManager.executeCommand(
+                mainWindow,
+                'which npm',
+                'export NVM_DIR="$HOME/.nvm"\n' +
+                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                'When try to get npm path folder. Something get wrong!'
+            );
+            return resolve(getNpmPath);
         });
     }
 
@@ -170,7 +113,6 @@ class CordovaManager {
             const getLastIndexRegex = /(\/*\[\d+\/*)/;
             const addNewOsNameRegex = /(\/*const nameMap = new Map\(\[\/*)/;
             let macOsReleasePath = '';
-
             if (global) {
                 const getNpmPath = await this.getNpmPath(mainWindow);
                 if (getNpmPath.error) {
@@ -209,9 +151,6 @@ class CordovaManager {
                             return resolve(writeFile);
                         }
                         const cordovaVersion = await this.getCordovaVersion(mainWindow);
-                        if (cordovaVersion.error) {
-                            return resolve(cordovaVersion);
-                        }
                         return resolve(cordovaVersion);
                     } else {
                         return resolve({error: true, data: null, message: 'No data to be corrected2!'});
@@ -222,6 +161,18 @@ class CordovaManager {
             } else {
                 return resolve({error: true, data: null, message: 'No data to be corrected4!'});
             }
+        });
+    }
+
+
+    async sendListen(mainWindow, text, type = null, error = false) {
+        return new Promise(async (resolve) => {
+            mainWindow.webContents.send('command:listen', {
+                data: text,
+                type: type,
+                error: error
+            });
+            resolve(true);
         });
     }
 }

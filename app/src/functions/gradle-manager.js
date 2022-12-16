@@ -2,53 +2,54 @@ const {ChildProcess} = require('./child_process');
 
 class GradleManager {
     childManager = new ChildProcess();
+    consoleType = {
+        command: "command",
+        output: "output",
+        error: "error",
+        info: "info"
+    }
 
     constructor() {
     }
 
     async getGradleVersion(mainWindow) {
         return new Promise(async (resolve) => {
-            await this.childManager.execCommand('eval "$(~/homebrew/bin/brew shellenv)"&&gradle -v', (event) => {
-                if (event.error) {
-                    return resolve({error: true, data: null, message: 'Gradle not install!'});
-                }
-
-                if (event.type === 'stdout:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: new RegExp(/(\/*Gradle \S+\/*)/).exec(event.data.trim())[0].split('Gradle ')[1]
-                    });
-                }
-                if (event.type === 'stderr:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: new RegExp(/(\/*Gradle \S+\/*)/).exec(event.data.trim())[0].split('Gradle ')[1]
-                    });
-                }
-            }, mainWindow);
+            await this.sendListen(mainWindow, 'Checking Homebrew version!', this.consoleType.info);
+            const brewVersion = await this.childManager.executeCommand(
+                mainWindow,
+                'gradle -v',
+                'eval "$(~/homebrew/bin/brew shellenv)"',
+                'You do not have a Gradle version installed on your computer.'
+            );
+            if (brewVersion.error) {
+                return resolve(brewVersion);
+            }
+            brewVersion.data = new RegExp(/(\/*Gradle \S+\/*)/).exec(brewVersion.data.trim())[0].split('Gradle ')[1]
+            return resolve(brewVersion);
         });
     }
 
     async installGradle(mainWindow) {
         return new Promise(async (resolve) => {
-            const command = 'eval "$(~/homebrew/bin/brew shellenv)"&&brew reinstall gradle --force';
-            await this.childManager.execCommand(command, (event) => {
-                if (event.error) {
-                    return resolve({error: true, data: null, message: 'Gradle not install!'});
-                }
-                if (event.type === 'stdout:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: event.data.trim()
-                    });
-                }
-                if (event.type === 'stderr:end' && !event.error && event.data !== '') {
-                    return resolve({
-                        error: false,
-                        data: event.data.trim()
-                    });
-                }
-            }, mainWindow);
+            await this.sendListen(mainWindow, 'Homebrew is updating.', this.consoleType.info);
+            const updateBrew = await this.childManager.executeCommand(
+                mainWindow,
+                'brew reinstall gradle --force',
+                'eval "$(~/homebrew/bin/brew shellenv)"',
+                'When try to install Gradle. Something get wrong!'
+            );
+            return resolve(updateBrew);
+        });
+    }
+
+    async sendListen(mainWindow, text, type = null, error = false) {
+        return new Promise(async (resolve) => {
+            mainWindow.webContents.send('command:listen', {
+                data: text,
+                type: type,
+                error: error
+            });
+            resolve(true);
         });
     }
 }

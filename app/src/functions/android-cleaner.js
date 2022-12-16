@@ -17,29 +17,20 @@ class AndroidCleaner {
     NodeManager = new NodeManager();
     JavaManager = new JavaManager();
     childManager = new ChildProcess();
-    NodeMin = '12.20.0';
+    NodeMin = '12.22.0';
     NodeMax = '14.17.0';
-    consoleType = {
-        command: "command",
-        output: "output",
-        error: "error",
-        info: "info"
-    }
 
     constructor() {
     }
 
     async startAndroidCleaner(command, mainWindow) {
         return new Promise(async (resolve) => {
-            /*   const environmentCheck = await this.environmentCheck(mainWindow);
-               if (environmentCheck.error) {
-                   return resolve(environmentCheck);
-               }*/
-
+            const environmentCheck = await this.environmentCheck(mainWindow);
+            if (environmentCheck.error) {
+                return resolve(environmentCheck);
+            }
 
             /*
-
-
                if (command.includes('node_modules')) {
                    const refreshNodeModules = await this.refresh_only_node_modules(mainWindow);
                    console.log('%c refreshNodeModules', 'background: #222; color: #bada55', refreshNodeModules);
@@ -49,7 +40,6 @@ class AndroidCleaner {
 
     async environmentCheck(mainWindow) {
         return new Promise(async (resolve) => {
-
             const handleBrew = await this.handleBrew(mainWindow);
             if (handleBrew.error) {
                 return resolve(handleBrew);
@@ -63,106 +53,25 @@ class AndroidCleaner {
                 return resolve(handleJava);
             }
 
-
-            // Ionic Version
-            await this.sendListen(mainWindow, 'Checking ionic version!')
-            let ionicVersion = await this.ionicCli.getIonicVersion(mainWindow);
-            if (ionicVersion.error) {
-                await this.sendListen(mainWindow, 'Trying install ionic!')
-                const installIonic = await this.tryInstallIonic(mainWindow);
-                if (installIonic.error) {
-                    return resolve(installIonic);
-                }
-                ionicVersion = await this.ionicCli.getIonicVersion(mainWindow);
-                if (ionicVersion.error) {
-                    return resolve(installIonic);
-                }
+            const handleGradle = await this.handleGradle(mainWindow);
+            if (handleGradle.error) {
+                return resolve(handleGradle);
             }
-            this.IONIC_VERSION = ionicVersion.data;
-            await this.sendListen(mainWindow, 'Ionic is installed! Version: ' + ionicVersion.data);
 
-            await this.sendListen(mainWindow, 'Checking cordova version!');
-            // Cordova Version
-            let cordovaError = null;
-            let fixed = null;
-            let cordovaVersion = await this.CordovaManager.getCordovaVersion(mainWindow);
-            if (cordovaVersion.error) {
-                await this.sendListen(mainWindow, 'Cordova not found!');
-                if (cordovaVersion.message === 'nameMap ERROR') {
-                    await this.sendListen(mainWindow, 'nameMap ERROR!');
-                    cordovaError = 'nameMap';
-                    await this.sendListen(mainWindow, 'Try to fix nameMap!');
-                    fixed = await this.CordovaManager.fixMacOsReleaseName(mainWindow, true);
-                    if (fixed.error) {
-                        return resolve(fixed);
-                    }
-                } else {
-                    await this.sendListen(mainWindow, 'Trying install cordova!');
-                    cordovaError = 'notFound';
-                    const installCordova = await this.tryInstallCordova(mainWindow);
-                    if (installCordova.error) {
-                        return resolve(installCordova);
-                    }
-                }
-
-                if (cordovaError === 'nameMap') {
-                    cordovaVersion = fixed;
-                } else {
-                    cordovaVersion = await this.CordovaManager.getCordovaVersion(mainWindow);
-                    if (cordovaVersion.error) {
-                        if (cordovaVersion.message === 'nameMap ERROR') {
-                            await this.sendListen(mainWindow, 'nameMap ERROR!');
-                            await this.sendListen(mainWindow, 'Try to fix nameMap!');
-                            fixed = await this.CordovaManager.fixMacOsReleaseName(mainWindow, true);
-                            if (fixed.error) {
-                                return resolve(fixed);
-                            }
-                            cordovaVersion = fixed;
-                        } else {
-                            return resolve(cordovaVersion);
-                        }
-                    }
-                }
+            const handleIonic = await this.handleIonic(mainWindow);
+            if (handleIonic.error) {
+                return resolve(handleIonic);
             }
-            this.CORDOVA_VERSION = cordovaVersion.data;
-            await this.sendListen(mainWindow, 'Cordova is installed! Version: ' + cordovaVersion.data);
-            await this.sendListen(mainWindow, 'Checking cordova resources version!');
-            // Cordova Resources Version
-            let cordovaResourcesVersion = await this.CordovaManager.getCordovaResVersion(mainWindow);
-            if (cordovaResourcesVersion.error) {
-                await this.sendListen(mainWindow, 'Trying install cordova resources!');
-                const installCordovaResources = await this.tryInstallCordovaResources(mainWindow);
-                if (installCordovaResources.error) {
-                    return resolve(installCordovaResources);
-                }
-                cordovaResourcesVersion = await this.CordovaManager.getCordovaResVersion(mainWindow);
-                if (cordovaResourcesVersion.error) {
-                    return resolve(cordovaResourcesVersion);
-                }
+
+            const handleCordova = await this.handleCordova(mainWindow);
+            if (handleCordova.error) {
+                return resolve(handleCordova);
             }
-            this.CORDOVA_RES_VERSION = cordovaResourcesVersion.data;
-            await this.sendListen(mainWindow, 'Cordova resources is installed! Version: ' + cordovaResourcesVersion.data);
 
-
-            await this.sendListen(mainWindow, 'Checking gradle version!');
-            // Gradle Version
-            let gradleVersion = await this.GradleManager.getGradleVersion(mainWindow);
-            if (gradleVersion.error) {
-                await this.sendListen(mainWindow, 'Trying install gradle!');
-                const installGradleWithBrew = await this.tryInstallGradleWithBrew(mainWindow);
-                if (installGradleWithBrew.error) {
-                    if (!installGradleWithBrew.message.includes('Brew')) {
-                        return resolve(installGradleWithBrew);
-                    }
-                }
-
-                gradleVersion = await this.GradleManager.getGradleVersion(mainWindow);
-                if (gradleVersion.error) {
-                    return resolve(gradleVersion);
-                }
+            const handleCordovaRes = await this.handleCordovaRes(mainWindow);
+            if (handleCordovaRes.error) {
+                return resolve(handleCordovaRes);
             }
-            this.GRADLE_VERSION = gradleVersion.data;
-            await this.sendListen(mainWindow, 'Gradle is installed! Version: ' + gradleVersion.data);
 
             return resolve({error: false});
         });
@@ -191,17 +100,16 @@ class AndroidCleaner {
                     return resolve(nodeVersion);
                 }
             }
-            const v = nodeVersion.data;
-            const replace = v.replace('v', '').split('.');
+            const v = nodeVersion.data.replace('v', '');
+            const split = v.split('.');
             await this.sendListen(mainWindow, 'Compare project required node version!');
-            const compareVersions = this.compareVersions(replace, this.NodeMin.split('.'), this.NodeMax.split('.'))
+            const compareVersions = this.compareVersions(split, this.NodeMin.split('.'), this.NodeMax.split('.'));
             if (+compareVersions === -1) {
-                const changeNodeVersion = await this.NodeManager.changeNodeVersionTo(mainWindow, this.NodeMax);
-                if (changeNodeVersion.error) {
-                    return resolve(changeNodeVersion);
+                nodeVersion = await this.NodeManager.changeNodeVersionTo(mainWindow, this.NodeMax);
+                if (nodeVersion.error) {
+                    return resolve(nodeVersion);
                 }
             }
-            nodeVersion = await this.NodeManager.getNodeVersion(mainWindow);
             return resolve(nodeVersion);
         });
     }
@@ -209,38 +117,84 @@ class AndroidCleaner {
     async handleJava(mainWindow) {
         return new Promise(async (resolve) => {
             let javaVersion = await this.JavaManager.getJavaVersion(mainWindow);
-            if (javaVersion.error) {
-                const installJavaWithBrew = await this.tryInstallJavaWithBrew(mainWindow);
+            if (javaVersion.error || (!javaVersion.error && !javaVersion.data.replace('javac ', '').trim().startsWith('1.8'))) {
+                const installJavaWithBrew = await this.tryInstallJavaWithAzul(mainWindow);
                 if (installJavaWithBrew.error) {
                     return resolve(installJavaWithBrew);
                 }
-
                 javaVersion = await this.JavaManager.getJavaVersion(mainWindow);
-                if (javaVersion.error) {
-                    return resolve(javaVersion);
+            }
+            return resolve(javaVersion);
+        });
+    }
+
+    async handleIonic(mainWindow) {
+        return new Promise(async (resolve) => {
+            let ionicVersion = await this.ionicCli.getIonicVersion(mainWindow);
+            if (ionicVersion.error) {
+                const installIonic = await this.tryInstallIonic(mainWindow);
+                if (installIonic.error) {
+                    return resolve(installIonic);
+                }
+                ionicVersion = await this.ionicCli.getIonicVersion(mainWindow);
+            }
+            return resolve(ionicVersion);
+        });
+    }
+
+    async handleCordova(mainWindow) {
+        return new Promise(async (resolve) => {
+            let cordovaVersion = await this.CordovaManager.getCordovaVersion(mainWindow);
+            if (cordovaVersion.error) {
+                if (cordovaVersion.message.includes('nameMap')) {
+                    cordovaVersion = await this.CordovaManager.fixMacOsReleaseName(mainWindow, true);
+                }
+                if (cordovaVersion.error) {
+                    const installCordova = await this.tryInstallCordova(mainWindow);
+                    if (installCordova.error) {
+                        return resolve(installCordova);
+                    }
+                    cordovaVersion = await this.CordovaManager.getCordovaVersion(mainWindow);
+                    if (cordovaVersion.error && cordovaVersion.message.includes('nameMap')) {
+                        cordovaVersion = await this.CordovaManager.fixMacOsReleaseName(mainWindow, true);
+                    }
                 }
             }
+            return resolve(cordovaVersion);
+        });
+    }
 
-            if (!javaVersion.data.replace('javac ', '').trim().startsWith('1.8')) {
-                const javaVirtualMachine = await this.JavaManager.checkJavaVersionExist(mainWindow, '1.8');
-                if (javaVirtualMachine.error) {
-                    await this.sendListen(mainWindow, 'Trying install java!');
-                    const installJavaWithBrew = await this.tryInstallJavaWithBrew(mainWindow);
-                    if (installJavaWithBrew.error) {
-                        return resolve(installJavaWithBrew);
+    async handleCordovaRes(mainWindow) {
+        return new Promise(async (resolve) => {
+            let cordovaResourcesVersion = await this.CordovaManager.getCordovaResVersion(mainWindow);
+            if (cordovaResourcesVersion.error) {
+                const installCordovaResources = await this.tryInstallCordovaResources(mainWindow);
+                if (installCordovaResources.error) {
+                    return resolve(installCordovaResources);
+                }
+                cordovaResourcesVersion = await this.CordovaManager.getCordovaResVersion(mainWindow);
+            }
+            return resolve(cordovaResourcesVersion);
+        });
+    }
+
+    async handleGradle(mainWindow) {
+        return new Promise(async (resolve) => {
+            let gradleVersion = await this.GradleManager.getGradleVersion(mainWindow);
+            if (gradleVersion.error) {
+                await this.sendListen(mainWindow, 'Trying install gradle!');
+                const installGradleWithBrew = await this.tryInstallGradleWithBrew(mainWindow);
+                if (installGradleWithBrew.error) {
+                    if (!installGradleWithBrew.message.includes('Brew')) {
+                        return resolve(installGradleWithBrew);
                     }
-                    javaVersion.data = installJavaWithBrew.data;
-                } else {
-                    const setJavaVersion = await this.JavaManager.setJavaVersion(mainWindow, javaVirtualMachine.data);
-                    if (setJavaVersion.error) {
-                        return resolve(setJavaVersion);
-                    }
-                    javaVersion.data = javaVirtualMachine.data;
+                }
+                gradleVersion = await this.GradleManager.getGradleVersion(mainWindow);
+                if (gradleVersion.error) {
+                    return resolve(gradleVersion);
                 }
             }
-            this.JAVA_VERSION = javaVersion.data;
-            await this.sendListen(mainWindow, 'Java is installed! Version: ' + javaVersion.data);
-
+            return resolve(gradleVersion);
         });
     }
 
@@ -254,6 +208,14 @@ class AndroidCleaner {
     async tryInstallJavaWithBrew(mainWindow) {
         return new Promise(async (resolve) => {
             const installJavaWithBrew = await this.JavaManager.installJavaWithBrew(mainWindow);
+            return resolve(installJavaWithBrew);
+        });
+    }
+
+
+    async tryInstallJavaWithAzul(mainWindow) {
+        return new Promise(async (resolve) => {
+            const installJavaWithBrew = await this.JavaManager.installJavaWithAzul(mainWindow);
             return resolve(installJavaWithBrew);
         });
     }
@@ -420,37 +382,18 @@ class AndroidCleaner {
     }
 
     compareVersions(version, minVersion, maxVersion) {
-        console.log('%c minVersion.length', 'background: #222; color: #bada55', minVersion.length);
-        console.log('%c maxVersion.length', 'background: #222; color: #bada55', maxVersion.length);
-        console.log('%c version.length', 'background: #222; color: #bada55', version.length);
-
         const len = Math.min(minVersion.length, maxVersion.length, version.length);
-        //12.20
-        //12.20.3
-        //14.17.0
-        console.log('%c len', 'background: #222; color: #bada55', len);
         for (let i = 0; i < len; i++) {
-            console.log('%c version[i]', 'background: #222; color: #bada55', version[i]);
-            console.log('%c maxVersion[i]', 'background: #222; color: #bada55', maxVersion[i]);
-            console.log('%c minVersion[i]', 'background: #222; color: #bada55', minVersion[i]);
-
-            if (parseInt(version[i]) < parseInt(maxVersion[i]) && parseInt(version[i]) > parseInt(minVersion[i])) {
-                return 1;
-            }
-
-            if (parseInt(version[i]) > parseInt(maxVersion[i]) || parseInt(version[i]) < parseInt(minVersion[i])) {
+            if (parseInt(version[i]) > parseInt(maxVersion[i])) {
                 return -1;
             }
         }
 
-        if (version.length > minVersion.length && version.length > maxVersion.length) {
-            return 1;
+        for (let i = 0; i < len; i++) {
+            if (parseInt(version[i]) < parseInt(minVersion[i])) {
+                return -1;
+            }
         }
-
-        if (version.length < minVersion.length && version.length < maxVersion.length) {
-            return -1;
-        }
-
         return 0;
     }
 

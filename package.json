@@ -9,6 +9,7 @@
     "@electron-forge/maker-rpm": "^6.0.3",
     "@electron-forge/maker-squirrel": "^6.0.3",
     "@electron-forge/maker-zip": "^6.0.3",
+    "electron-builder": "^23.6.0",
     "electron": "^22.0.0",
     "electron-devtools-installer": "^3.2.0"
   },

@@ -98,10 +98,11 @@ class ChildProcess {
         encoding: 'utf8',
         signal: null,
         timeout: 0,
-        maxBuffer: 200 * 1024, //increase here
+        maxBuffer: 2024 * 2024, //increase here
         killSignal: 'SIGTERM',
         cwd: null,
-        env: null
+        env: null,
+        shell: '/bin/zsh'
     }) {
 
         return new Promise(async (resolve) => {
@@ -176,14 +177,16 @@ class ChildProcess {
                 this.execClose = null;
             }
             this.execClose = this.childProcessExec.on('close', exitCode => {
-                callback({
-                    data: false,
-                    error: false,
-                    type: 'close'
-                });
-                this.execClose = null;
-                this.stdoutOn = null;
-                this.stderrOn = null;
+                setTimeout(() => {
+                    callback({
+                        data: false,
+                        error: false,
+                        type: 'close'
+                    });
+                    this.execClose = null;
+                    this.stdoutOn = null;
+                    this.stderrOn = null;
+                }, 1000);
             });
 
         });
@@ -222,7 +225,6 @@ class ChildProcess {
             const cdRegex = /((cd +~[^&]+))|((cd +~))|((cd +.[(\/\S+)][^&]+))|((cd +[.][.][(\/\w+)]+))|((cd [(\/\w+)]+))|((cd [(\/\w+)]+))|((cd +[.][.]))/g;
             let m;
             const paths = [];
-            console.log('%c command', 'background: #222; color: #bada55', command);
             while ((m = cdRegex.exec(command.trimStart())) !== null) {
                 if (m.index === cdRegex.lastIndex) {
                     cdRegex.lastIndex++;
@@ -264,8 +266,6 @@ class ChildProcess {
                         })
                     }, Promise.resolve()).finally(async () => {
                         mainWindow.webContents.send('command:listen', {
-                            error: false,
-                            data: this.config.currentPath,
                             type: 'folder_change'
                         });
                     });

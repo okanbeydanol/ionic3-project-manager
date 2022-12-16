@@ -26,45 +26,13 @@ class BrewManager {
         });
     }
 
-    async installBrew(mainWindow) {
-        return new Promise(async (resolve) => {
-            await this.sendListen(mainWindow, 'Trying install Homebrew!', this.consoleType.info);
-            const checkPermission = await this.checkPermission(mainWindow);
-            if (checkPermission.error) {
-                return resolve(checkPermission);
-            }
-            const removeFolder = await this.removeFolder(mainWindow);
-            if (removeFolder.error) {
-                return resolve(removeFolder);
-            }
-            const createFolder = await this.createFolder(mainWindow);
-            if (createFolder.error) {
-                return resolve(createFolder);
-            }
-            const cloneBrew = await this.cloneBrew(mainWindow);
-            if (cloneBrew.error) {
-                return resolve(cloneBrew);
-            }
-            const updateBrew = await this.updateBrew(mainWindow);
-            if (updateBrew.error) {
-                return resolve(updateBrew);
-            }
-            const exportBrewEcho = await this.exportBrewEcho(mainWindow);
-            if (exportBrewEcho.error) {
-                return resolve(exportBrewEcho);
-            }
-            await this.sendListen(mainWindow, 'Homebrew install successfully.', this.consoleType.info);
-            return resolve(updateBrew);
-        });
-    }
-
     async updateBrew(mainWindow) {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Homebrew is updating.', this.consoleType.info);
             const updateBrew = await this.childManager.executeCommand(
                 mainWindow,
                 'brew update --force&&chmod -R go-w "$(brew --prefix)/share/zsh"',
-                'eval "$(homebrew/bin/brew shellenv)"',
+                'eval "$(~/homebrew/bin/brew shellenv)"',
                 'When try to update Homebrew. Something get wrong!'
             );
             return resolve(updateBrew);
@@ -130,7 +98,7 @@ class BrewManager {
             await this.sendListen(mainWindow, 'Exporting Homebrew to ~/.zprofile.', this.consoleType.info);
             const exportBrew = await this.childManager.executeCommand(
                 mainWindow,
-                'git clone -q --verbose https://github.com/Homebrew/brew ~/homebrew',
+                `echo 'eval "$(~/homebrew/bin/brew shellenv)"' >> ~/.zprofile`,
                 null,
                 'When try to export Homebrew to ~/.zprofile. Something get wrong!'
             );
@@ -138,6 +106,37 @@ class BrewManager {
         });
     }
 
+    async installBrew(mainWindow) {
+        return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Trying install Homebrew!', this.consoleType.info);
+            /*            const checkPermission = await this.checkPermission(mainWindow);
+                        if (checkPermission.error) {
+                            return resolve(checkPermission);
+                        }*/
+            const removeFolder = await this.removeFolder(mainWindow);
+            if (removeFolder.error) {
+                return resolve(removeFolder);
+            }
+            const createFolder = await this.createFolder(mainWindow);
+            if (createFolder.error) {
+                return resolve(createFolder);
+            }
+            const cloneBrew = await this.cloneBrew(mainWindow);
+            if (cloneBrew.error) {
+                return resolve(cloneBrew);
+            }
+            const updateBrew = await this.updateBrew(mainWindow);
+            if (updateBrew.error) {
+                return resolve(updateBrew);
+            }
+            const exportBrewEcho = await this.exportBrewEcho(mainWindow);
+            if (exportBrewEcho.error) {
+                return resolve(exportBrewEcho);
+            }
+            await this.sendListen(mainWindow, 'Homebrew install successfully.', this.consoleType.info);
+            return resolve(updateBrew);
+        });
+    }
 
     async sendListen(mainWindow, text, type = null, error = false) {
         return new Promise(async (resolve) => {
