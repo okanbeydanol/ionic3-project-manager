@@ -76,10 +76,10 @@ class ChildProcess {
     ]
 
     config_path = path.join(__dirname, '../config');
+    config = null;
     stdoutOn = null;
     stderrOn = null;
     execClose = null;
-    config = null;
     childProcessExec;
     consoleType = {
         command: "command",
@@ -104,9 +104,14 @@ class ChildProcess {
         env: null,
         shell: '/bin/zsh'
     }) {
-
         return new Promise(async (resolve) => {
-            await this.checkCommand(command, mainWindow);
+            const config = await new FsManager().readFile(config_path + '/settings.json', {
+                encoding: 'utf8',
+                flag: 'r',
+                signal: null
+            });
+            options.cwd = JSON.parse(config.data).currentPath;
+            console.log('%c options.cwd', 'background: #222; color: #bada55', options.cwd);
             this.controller = new AbortController();
             const {signal} = this.controller;
             options.signal = options.signal ? options.signal : signal;
@@ -215,13 +220,6 @@ class ChildProcess {
 
     async checkCommand(command, mainWindow) {
         return new Promise(async (resolve) => {
-            this.config = await new FsManager().readFile(config_path + '/settings.json', {
-                encoding: 'utf8',
-                flag: 'r',
-                signal: null
-            }).then((d) => {
-                return JSON.parse(d.data);
-            });
             const cdRegex = /((cd +~[^&]+))|((cd +~))|((cd +.[(\/\S+)][^&]+))|((cd +[.][.][(\/\w+)]+))|((cd [(\/\w+)]+))|((cd [(\/\w+)]+))|((cd +[.][.]))/g;
             let m;
             const paths = [];
@@ -236,6 +234,13 @@ class ChildProcess {
                 });
             }
             if (paths.length > 0) {
+                this.config = await new FsManager().readFile(config_path + '/settings.json', {
+                    encoding: 'utf8',
+                    flag: 'r',
+                    signal: null
+                }).then((d) => {
+                    return JSON.parse(d.data);
+                });
                 for await (let path of paths) {
                     let replace = path.trim().replace('cd ', '').trim();
                     if (replace[replace.length - 1] === '/') {
@@ -271,8 +276,14 @@ class ChildProcess {
                     });
                 }
             } else {
-                this.config = await new FsManager().readFile(this.config_path + '/settings.json');
-                return resolve({error: false, data: 'cd ' + this.config.currentPath + '&&' + command})
+                this.config = await new FsManager().readFile(config_path + '/settings.json', {
+                    encoding: 'utf8',
+                    flag: 'r',
+                    signal: null
+                }).then((d) => {
+                    return JSON.parse(d.data);
+                });
+                return resolve(this.config.currentPath)
             }
         });
     }

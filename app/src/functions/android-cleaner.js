@@ -30,11 +30,10 @@ class AndroidCleaner {
                 return resolve(environmentCheck);
             }
 
-            /*
-               if (command.includes('node_modules')) {
-                   const refreshNodeModules = await this.refresh_only_node_modules(mainWindow);
-                   console.log('%c refreshNodeModules', 'background: #222; color: #bada55', refreshNodeModules);
-               }*/
+            if (command.includes('node_modules')) {
+                const refreshNodeModules = await this.refresh_only_node_modules(mainWindow);
+                console.log('%c refreshNodeModules', 'background: #222; color: #bada55', refreshNodeModules);
+            }
         });
     }
 
