@@ -7,6 +7,7 @@ const {NodeManager} = require('./node-manager');
 const {JavaManager} = require('./java-manager');
 const {FsManager} = require("./fs-manager");
 const path = require("path");
+const {PackageJsonManager} = require("./package_json_control");
 const config_path = path.join(__dirname, '../config');
 
 class AndroidCleaner {
@@ -19,6 +20,12 @@ class AndroidCleaner {
     childManager = new ChildProcess();
     NodeMin = '12.22.0';
     NodeMax = '14.17.0';
+    consoleType = {
+        command: "command",
+        output: "output",
+        error: "error",
+        info: "info"
+    }
 
     constructor() {
     }
@@ -29,10 +36,13 @@ class AndroidCleaner {
             if (environmentCheck.error) {
                 return resolve(environmentCheck);
             }
-
             if (command.includes('node_modules')) {
                 const refreshNodeModules = await this.refresh_only_node_modules(mainWindow);
                 console.log('%c refreshNodeModules', 'background: #222; color: #bada55', refreshNodeModules);
+            }
+            if (command.includes('prepare')) {
+                const refreshAndroid = await this.refresh_only_android(mainWindow);
+                console.log('%c refreshAndroid', 'background: #222; color: #bada55', refreshAndroid);
             }
         });
     }
@@ -51,27 +61,22 @@ class AndroidCleaner {
             if (handleJava.error) {
                 return resolve(handleJava);
             }
-
             const handleGradle = await this.handleGradle(mainWindow);
             if (handleGradle.error) {
                 return resolve(handleGradle);
             }
-
             const handleIonic = await this.handleIonic(mainWindow);
             if (handleIonic.error) {
                 return resolve(handleIonic);
             }
-
             const handleCordova = await this.handleCordova(mainWindow);
             if (handleCordova.error) {
                 return resolve(handleCordova);
             }
-
             const handleCordovaRes = await this.handleCordovaRes(mainWindow);
             if (handleCordovaRes.error) {
                 return resolve(handleCordovaRes);
             }
-
             return resolve({error: false});
         });
     }
@@ -103,6 +108,7 @@ class AndroidCleaner {
             const split = v.split('.');
             await this.sendListen(mainWindow, 'Compare project required node version!');
             const compareVersions = this.compareVersions(split, this.NodeMin.split('.'), this.NodeMax.split('.'));
+            console.log('%c compareVersions', 'background: #222; color: #bada55', compareVersions);
             if (+compareVersions === -1) {
                 nodeVersion = await this.NodeManager.changeNodeVersionTo(mainWindow, this.NodeMax);
                 if (nodeVersion.error) {
@@ -260,28 +266,196 @@ class AndroidCleaner {
             }).then((d) => {
                 return JSON.parse(d.data);
             });
-            await this.sendListen(mainWindow, 'Deleting the www folder!');
+            await this.sendListen(mainWindow, 'Deleting the www folder!', this.consoleType.info);
             await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.WWW);
-            await this.sendListen(mainWindow, 'Deleting the node_modules folder!');
+            await this.sendListen(mainWindow, 'Deleting the node_modules folder!', this.consoleType.info);
             await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.NODE_MODULES);
-            await this.sendListen(mainWindow, 'Deleting the package_lock.json folder!');
+            await this.sendListen(mainWindow, 'Deleting the package_lock.json folder!', this.consoleType.info);
             await this.remove_file_if_exist(this.config.project_path + '/' + this.config.folders.PACKAGE_LOCK_JSON);
-            await this.sendListen(mainWindow, "Npm cache verifying");
-            const cache_verify = await this.execute_command(mainWindow, this.config.scripts.cache_verify);
-            if (cache_verify.error) {
-                return resolve(cache_verify);
-            }
-            await this.sendListen(mainWindow, "Npm packages is installing");
-            const npm_install = await this.execute_command(mainWindow, this.config.scripts.npm_install);
-            if (npm_install.error) {
-                return resolve(npm_install);
+
+            await this.sendListen(mainWindow, 'Npm Cache is verifying!', this.consoleType.info);
+            const npmCacheVerify = await this.childManager.executeCommand(
+                mainWindow,
+                'unset npm_config_prefix&&npm cache verify',
+                'export NVM_DIR="$HOME/.nvm"\n' +
+                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                'When try to npm cache verify. Something get wrong!'
+            );
+            if (npmCacheVerify.error) {
+                return resolve(npmCacheVerify);
             }
 
-            const editFiles = await this.editFiles(mainWindow);
+            await this.sendListen(mainWindow, 'Npm packages is installing!', this.consoleType.info);
+            const npmInstall = await this.childManager.executeCommand(
+                mainWindow,
+                'unset npm_config_prefix&&npm install',
+                'export NVM_DIR="$HOME/.nvm"\n' +
+                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                'When try to npm install. Something get wrong!'
+            );
+            if (npmInstall.error) {
+                return resolve(npmInstall);
+            }
+
+            await this.sendListen(mainWindow, '--------BEFORE BUILD NODE MODULES FIXES----------', this.consoleType.info);
+            const editFiles = await this.editFiles(mainWindow, 'before_build', 'node_modules', this.config.project_path);
             if (editFiles.error) {
                 return resolve(editFiles);
             }
+
+            await this.sendListen(mainWindow, '--------BEFORE BUILD NODE MODULES FIXES END----------', this.consoleType.info);
             return resolve({error: false, data: null});
+
+
+        });
+    }
+
+    async refresh_only_android(mainWindow) {
+        return new Promise(async (resolve) => {
+            this.config = await new FsManager().readFile(config_path + '/settings.json', {
+                encoding: 'utf8',
+                flag: 'r',
+                signal: null
+            }).then((d) => {
+                return JSON.parse(d.data);
+            });
+            await this.sendListen(mainWindow, 'Deleting the www folder!', this.consoleType.info);
+            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.WWW);
+            await this.sendListen(mainWindow, 'Deleting the plugins folder!', this.consoleType.info);
+            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.PLUGINS);
+            await this.sendListen(mainWindow, 'Deleting the android folder!', this.consoleType.info);
+            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.ANDROID);
+            await this.sendListen(mainWindow, 'Deleting the ios folder!', this.consoleType.info);
+            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.IOS);
+
+            await this.CordovaManager.fixMacOsReleaseName(mainWindow, false);
+
+            const check_webview_exist = await this.check_plugin_exist('cordova-plugin-ionic-webview');
+            if (check_webview_exist) {
+                await this.sendListen(mainWindow, 'Cordova webview plugin is removing!', this.consoleType.info);
+                const removeCordovaWebview = await this.childManager.executeCommand(
+                    mainWindow,
+                    'unset npm_config_prefix&&npm uninstall cordova-plugin-ionic-webview',
+                    'export NVM_DIR="$HOME/.nvm"\n' +
+                    '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                    '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                    'When try to remove webview. Something get wrong!'
+                );
+                if (removeCordovaWebview.error) {
+                    return resolve(removeCordovaWebview);
+                }
+            }
+
+            const check_native_webview_exist = await this.check_plugin_exist('@ionic-native/ionic-webview');
+            if (check_native_webview_exist) {
+                await this.sendListen(mainWindow, 'Cordova native webview plugin is removing!', this.consoleType.info);
+                const removeCordovaNativeWebview = await this.childManager.executeCommand(
+                    mainWindow,
+                    'unset npm_config_prefix&&npm uninstall @ionic-native/ionic-webview',
+                    'export NVM_DIR="$HOME/.nvm"\n' +
+                    '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                    '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                    'When try to remove webview. Something get wrong!'
+                );
+                if (removeCordovaNativeWebview.error) {
+                    return resolve(removeCordovaNativeWebview);
+                }
+            }
+
+
+            await this.sendListen(mainWindow, 'Remove android platform!', this.consoleType.info);
+            const removeAndroidPlatform = await this.childManager.executeCommand(
+                mainWindow,
+                'ionic cordova platform remove android',
+                'export NVM_DIR="$HOME/.nvm"\n' +
+                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                'When try to remove android platform. Something get wrong!'
+            );
+            if (removeAndroidPlatform.error) {
+                return resolve(removeAndroidPlatform);
+            }
+
+            const addAndroidPlatform = await this.childManager.executeCommand(
+                mainWindow,
+                'ionic cordova resources android --force',
+                'export NVM_DIR="$HOME/.nvm"\n' +
+                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                'When try to add android platform. Something get wrong!'
+            );
+            if (addAndroidPlatform.error) {
+                return resolve(addAndroidPlatform);
+            }
+
+            const addAndroidResources = await this.childManager.executeCommand(
+                mainWindow,
+                'ionic cordova platform add android',
+                'export NVM_DIR="$HOME/.nvm"\n' +
+                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                'When try to add android platform. Something get wrong!'
+            );
+            if (addAndroidResources.error) {
+                return resolve(addAndroidResources);
+            }
+
+            let server = 'dev';
+            const cmd_node = 'export NODE_ENV=' + (!server ? "dev" : server);
+
+            const cmd_prepare_android = cmd_node + ' && ionic cordova prepare android';
+            await this.sendListen(mainWindow, 'Preparing android!', this.consoleType.info);
+            const prepareAndroid = await this.childManager.executeCommand(
+                mainWindow,
+                cmd_prepare_android,
+                'export NVM_DIR="$HOME/.nvm"\n' +
+                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                'When try to remove webview. Something get wrong!'
+            );
+            if (prepareAndroid.error) {
+                return resolve(prepareAndroid);
+            }
+
+            await this.sendListen(mainWindow, '--------BEFORE BUILD ANDROID FIXES----------', this.consoleType.info);
+            const editFilesBefore = await this.editFiles(mainWindow, 'before_build', 'platforms/android', this.config.project_path);
+            if (editFilesBefore.error) {
+                return resolve(editFilesBefore);
+            }
+            await this.sendListen(mainWindow, '--------BEFORE BUILD ANDROID FIXES END----------', this.consoleType.info);
+
+            const cmd_build_aot_android = cmd_node + ' && ionic cordova build android --release --aot';
+            await this.sendListen(mainWindow, 'Build android!', this.consoleType.info);
+            const buildAndroid = await this.childManager.executeCommand(
+                mainWindow,
+                cmd_build_aot_android,
+                'export NVM_DIR="$HOME/.nvm"\n' +
+                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                'When try to remove webview. Something get wrong!'
+            );
+            if (buildAndroid.error) {
+                return resolve(buildAndroid);
+            }
+
+            await this.sendListen(mainWindow, '--------AFTER BUILD ANDROID FIXES----------', this.consoleType.info);
+            const editFilesAfter = await this.editFiles(mainWindow, 'after_build', 'platforms/android', this.config.project_path);
+            if (editFilesAfter.error) {
+                return resolve(editFilesAfter);
+            }
+            await this.sendListen(mainWindow, '--------AFTER BUILD ANDROID FIXES END----------', this.consoleType.info);
+
+            /*            if (keystore_config.path !== null) {
+                            const cmd_build_apk = cmd_node + ' && ionic cordova build android --prod --release -- -- --keystore="' + keystore + '" --storePassword="' + keystore_config.pass + '" --alias="' + keystore_config.alias + '" --password="' + keystore_config.pass + '" --packageType=apk';
+                            const cmd_build_aab = cmd_node + ' && ionic cordova build android --prod --release -- -- --keystore="' + keystore + '" --storePassword="' + keystore_config.pass + '" --alias="' + keystore_config.alias + '" --password="' + keystore_config.pass + '" --packageType=bundle';
+                            await execute_command(cmd_build_apk, "Build Android APK");
+                            await execute_command(cmd_build_aab, "Build Android AAB");
+                        }*/
+
+            return resolve({error: false, data: null});
+
 
         });
     }
@@ -322,80 +496,111 @@ class AndroidCleaner {
         });
     }
 
-    async editFiles(mainWindow, type = 'node_modules') {
+    async editFiles(mainWindow, order, type, projectPath) {
         return new Promise(async (resolve) => {
-            console.log('%c BYRDAAA', 'background: #222; color: #bada55',);
-            const node_modules_fixes = await new FsManager().readFile(config_path + '/node_modules_fixes.json', {
-                encoding: 'utf8',
-                flag: 'r',
-                signal: null
-            }).then((d) => {
-                return JSON.parse(d.data);
-            });
-            console.log('%c node_modules_fixes', 'background: #222; color: #bada55', node_modules_fixes);
-            const android_fixes = await new FsManager().readFile(config_path + '/android_fixes.json', {
-                encoding: 'utf8',
-                flag: 'r',
-                signal: null
-            }).then((d) => {
-                return JSON.parse(d.data);
-            });
-            const ios_fixes = await new FsManager().readFile(config_path + '/ios_fixes.json', {
-                encoding: 'utf8',
-                flag: 'r',
-                signal: null
-            }).then((d) => {
-                return JSON.parse(d.data);
-            });
-            console.log('%c android_fixes', 'background: #222; color: #bada55', android_fixes);
-            /*  await array.reduce((lastPromise, file_info) => {
-                  return lastPromise.then(async () => {
-                      if (order === file_info.order && existsSync(file_info.path)) {
-                          const fileContent = readFileSync(file_info.path, 'utf8').toString();
-                          const isFile = lstatSync(file_info.path).isFile();
-                          if (isFile) {
-                              if (!file_info.multiple) {
-                                  const match = fileContent.match(file_info.regex);
-                                  if (match) {
-                                      console.log('------ Editing ' + file_info.path + ' ------');
-                                      const newFileContent = fileContent.replace(file_info.regex, +file_info.type === 0 ? '' : +file_info.type === 1 ? '' : +file_info.type === 2 ? file_info.text : '');
-                                      await writeFileF(file_info.path, newFileContent);
-                                  }
-                              } else {
-                                  let newFileContent = fileContent;
-                                  for (let i = 0; i < file_info.data.length; i++) {
-                                      const data = file_info.data[i];
-                                      const match = data.regex.exec(newFileContent);
-                                      if (match) {
-                                          console.log('------ Editing ' + file_info.path + ' ------');
-                                          newFileContent = newFileContent.replace(data.regex, +file_info.type === 0 ? '' : +file_info.type === 1 ? '' : +file_info.type === 2 ? data.text : '');
-                                      }
-                                  }
-                                  await writeFileF(file_info.path, newFileContent);
-                              }
-                          }
-                      }
-                  });
-              }, Promise.resolve());*/
+            let d = [];
+            if (type === 'node_modules') {
+                let json = await new FsManager().readFile(config_path + '/node_modules_fixes.json', {
+                    encoding: 'utf8',
+                    flag: 'r',
+                    signal: null
+                });
+                d = JSON.parse(json.data);
+            } else if (type === 'platforms/android') {
+                let json = await new FsManager().readFile(config_path + '/android_fixes.json', {
+                    encoding: 'utf8',
+                    flag: 'r',
+                    signal: null
+                });
+                d = JSON.parse(json.data);
+            } else if (type === 'platforms/ios') {
+                let json = await new FsManager().readFile(config_path + '/ios_fixes.json', {
+                    encoding: 'utf8',
+                    flag: 'r',
+                    signal: null
+                });
+                d = JSON.parse(json.data);
+            }
+
+            await d.reduce((lastPromise, file_info) => {
+                return lastPromise.then(async () => {
+                    const pathExist = await new FsManager().pathExist(projectPath + '/' + file_info.folder + file_info.path);
+                    if (order === file_info.order && !pathExist.error && pathExist.data) {
+                        const fileContent = await new FsManager().readFile(projectPath + '/' + file_info.folder + file_info.path, {
+                            encoding: 'utf8',
+                            flag: 'r',
+                            signal: null
+                        })
+                        if (!fileContent.error) {
+                            let newFileContent = fileContent.data;
+                            for (let i = 0; i < file_info.data.length; i++) {
+                                const data = file_info.data[i];
+                                const match = new RegExp(data.regex, '').exec(newFileContent);
+                                if (match) {
+                                    await this.sendListen(mainWindow, '-------- EDITING ' + file_info.path + ' ----------', this.consoleType.info);
+                                    console.log('%c MATCH:', 'background: #222; color: #bada55', file_info.path);
+                                    newFileContent = newFileContent.replace(new RegExp(data.regex, ''), file_info.type === 'remove' ? '' : file_info.type === 'add' ? '' : file_info.type === 'replace' ? data.text : '');
+                                    await new FsManager().writeFile(projectPath + '/' + file_info.folder + file_info.path, newFileContent);
+                                } else {
+                                    console.log('%c NOT MATCH:', 'background: #222; color: #bada55', file_info.path);
+                                }
+                            }
+                        }
+                    }
+                });
+            }, Promise.resolve());
+            return resolve(true);
         });
     }
 
     compareVersions(version, minVersion, maxVersion) {
-        const len = Math.min(minVersion.length, maxVersion.length, version.length);
-        for (let i = 0; i < len; i++) {
-            if (parseInt(version[i]) > parseInt(maxVersion[i])) {
-                return -1;
-            }
+        const [ minMajor, minMinor = 0, minPatch = 0 ] = minVersion.map(Number);
+        const [ curMajor, curMinor = 0, curPatch = 0 ] = version.map(Number);
+        const [ maxMajor, maxMinor = 0, maxPatch = 0 ] = maxVersion.map(Number);
+
+        console.log('%c version', 'background: #222; color: #bada55', version);
+        console.log('%c minVersion', 'background: #222; color: #bada55', minVersion);
+        console.log('%c maxVersion', 'background: #222; color: #bada55', maxVersion);
+
+        if (curMajor < minMajor || curMajor > maxMajor) {
+            return -1;
         }
 
-        for (let i = 0; i < len; i++) {
-            if (parseInt(version[i]) < parseInt(minVersion[i])) {
-                return -1;
-            }
+        if (curMajor === minMajor && curMinor < minMinor) {
+            return -1;
         }
+
+        if (curMajor === minMajor && curMinor === minMinor && curPatch < minPatch) {
+            return -1;
+        }
+
+        if (curMajor === maxMajor && curMinor > maxMinor) {
+            return -1;
+        }
+
+        if (curMajor === maxMajor && curMinor === maxMinor && curPatch > maxPatch) {
+            return -1;
+        }
+
         return 0;
     }
 
+    async check_plugin_exist(plugin_name) {
+        return new Promise(async (resolve) => {
+            let result = false;
+            const init = await new PackageJsonManager().init();
+            if (init.error) {
+                return resolve(false);
+            }
+            if (init.data.package_json_dependencies[plugin_name]) {
+                result = true;
+            }
+            if (init.data.package_json_devDependencies[plugin_name]) {
+                result = true;
+            }
+            return resolve(result);
+        });
+    }
 
     async sendListen(mainWindow, text, type = null, error = false) {
         return new Promise(async (resolve) => {

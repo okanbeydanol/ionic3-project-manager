@@ -76,7 +76,7 @@ class CordovaManager {
 
     async getCordovaResVersion(mainWindow) {
         return new Promise(async (resolve) => {
-            await this.sendListen(mainWindow, 'Trying to get cordova res version!', this.consoleType.info);
+            await this.sendListen(mainWindow, 'Checking Cordova Resources version!!', this.consoleType.info);
             const installCordova = await this.childManager.executeCommand(
                 mainWindow,
                 'cordova-res -v',

@@ -14,7 +14,7 @@ class IonicManager {
 
     async getIonicVersion(mainWindow) {
         return new Promise(async (resolve) => {
-            await this.sendListen(mainWindow, 'Checking Homebrew version!', this.consoleType.info);
+            await this.sendListen(mainWindow, 'Checking Ionic version!', this.consoleType.info);
             const ionicVersion = await this.childManager.executeCommand(
                 mainWindow,
                 'ionic -v',

@@ -25,7 +25,6 @@ class FsManager {
     pathExist(path) {
         if (path !== null && path !== '') {
             return {data: existsSync(path), error: false};
-
         }
         return {data: false, error: false};
     }
@@ -138,7 +137,7 @@ class FsManager {
                     message: 'You are trying to append folder instead of file!', road: 'fs-manager:appendFile:isFile'
                 });
             }
-            appendFile(path, data, {encoding: 'utf8', mode: 0o666, flag: 'a'}, (err) => {
+            appendFile(path, data, {encoding: 'utf8', mode: 0o666, flag: 'a'}, async (err) => {
                 if (err !== null) {
                     return resolve({
                         data: null,
@@ -147,7 +146,8 @@ class FsManager {
                         road: 'fs-manager:appendFile:appendFile'
                     });
                 }
-                return resolve({data: true, error: false});
+                const stat = await this.getStats(path);
+                return resolve({data: true, error: false, stat: stat.data});
             });
         });
     }
@@ -192,7 +192,7 @@ class FsManager {
                     road: 'fs-manager:copyFile:getStats'
                 });
             }
-            copyFile(path, dest, (err) => {
+            copyFile(path, dest, async (err) => {
                 if (err !== null) {
                     return resolve({
                         data: null,
@@ -201,7 +201,8 @@ class FsManager {
                         road: 'fs-manager:copyFile:copyFile'
                     });
                 }
-                return resolve({data: true, error: false});
+                const stat = await this.getStats(path);
+                return resolve({data: true, error: false, stat: stat.data});
             });
         });
     }
@@ -227,7 +228,7 @@ class FsManager {
                     road: 'fs-manager:copyDirectory:getStats'
                 });
             }
-            cp(path, dest, (err) => {
+            cp(path, dest, async (err) => {
                 if (err !== null) {
                     return resolve({
                         data: null,
@@ -236,7 +237,8 @@ class FsManager {
                         road: 'fs-manager:copyDirectory:cp'
                     });
                 }
-                return resolve({data: true, error: false});
+                const stat = await this.getStats(path);
+                return resolve({data: true, error: false, stat: stat.data});
             });
         });
     }
@@ -286,16 +288,17 @@ class FsManager {
                     road: 'fs-manager:mkdir:addEndingSlash'
                 });
             }
-            mkdir(path.data + name, options, (err, path) => {
+            mkdir(path.data + name, options, async (err, path) => {
                 if (err !== null) {
                     return resolve({data: null, error: true, message: err.message, road: 'fs-manager:mkdir:mkdir'});
                 }
-                return resolve({data: path, error: false});
+                const stat = await this.getStats(path);
+                return resolve({data: path, error: false, stat: stat.data});
             });
         });
     }
 
-    async openFile(path, flag = 'a+') {
+    async openFile(path, flag = 'w+') {
         return new Promise(async (resolve) => {
             const exist = this.pathExist(path);
             if (!exist.data) {
@@ -324,11 +327,12 @@ class FsManager {
                 });
             }
 
-            open(path, flag, (err, fd) => {
+            open(path, flag, async (err, fd) => {
                 if (err !== null) {
                     return resolve({data: null, error: true, message: err.message, road: 'fs-manager:openFile:open'});
                 }
-                return resolve({data: fd, error: false});
+                const stat = await this.getStats(path);
+                return resolve({data: fd, error: false, stat: stat.data});
             });
         });
     }
@@ -362,7 +366,7 @@ class FsManager {
                 });
             }
 
-            opendir(path, options, (err, fd) => {
+            opendir(path, options, async (err, fd) => {
                 if (err !== null) {
                     return resolve({
                         data: null,
@@ -371,7 +375,8 @@ class FsManager {
                         road: 'fs-manager:openDir:opendir'
                     });
                 }
-                return resolve({data: fd, error: false});
+                const stat = await this.getStats(path);
+                return resolve({data: fd, error: false, stat: stat.data});
             });
         });
     }
@@ -405,7 +410,7 @@ class FsManager {
                 });
             }
 
-            readdir(path, options, (err, files) => {
+            readdir(path, options, async (err, files) => {
                 if (err !== null) {
                     return resolve({
                         data: null,
@@ -418,7 +423,8 @@ class FsManager {
                 files.map((value, index, array) => {
                     data.push({name: value.name, isFile: value.isFile(), isDirectory: value.isDirectory()});
                 });
-                return resolve({data: data, error: false});
+                const stat = await this.getStats(path);
+                return resolve({data: data, error: false, stat: stat.data});
             });
         });
     }
@@ -457,13 +463,14 @@ class FsManager {
                 const {signal} = controller;
                 options.signal = signal;
             }
-            readFile(path, options, (err, data) => {
+            readFile(path, options, async (err, data) => {
                 if (err !== null) {
                     return resolve({
                         data: null, error: true, message: err.message, road: 'fs-manager:readFile:readFile'
                     });
                 }
-                return resolve({data: data, error: false, controller: controller});
+                const stat = await this.getStats(path);
+                return resolve({data: data, error: false, controller: controller, stat: stat.data});
             });
         });
     }
@@ -509,11 +516,12 @@ class FsManager {
             const split = removeSlash.data.split('/');
             const last = split[split.length - 1];
             newPath = removeSlash.data.replace(last, newName);
-            rename(path, newPath, (err, data) => {
+            rename(path, newPath, async (err, data) => {
                 if (err !== null) {
                     return resolve({data: null, error: true, message: err.message, road: 'fs-manager:rename:rename'});
                 }
-                return resolve({data: data, error: false});
+                const stat = await this.getStats(path);
+                return resolve({data: data, error: false, stat: stat.data});
             });
         });
     }
@@ -548,11 +556,12 @@ class FsManager {
             }
             rmdir(path, {
                 recursive: true,
-            }, (err) => {
+            }, async (err) => {
                 if (err !== null) {
                     return resolve({data: null, error: true, message: err.message, road: 'fs-manager:rmDir:rmdir'});
                 }
-                return resolve({data: null, error: false});
+                const stat = await this.getStats(path);
+                return resolve({data: null, error: false, stat: stat.data});
             });
         });
     }
@@ -585,42 +594,45 @@ class FsManager {
                     road: 'fs-manager:rmFile:isFile'
                 });
             }
-            rm(path, options, (err) => {
+            rm(path, options, async (err) => {
                 if (err !== null) {
                     return resolve({data: null, error: true, message: err.message, road: 'fs-manager:rmFile:rm'});
                 }
-                return resolve({data: null, error: false});
+                const stat = await this.getStats(path);
+                return resolve({data: null, error: false, stat: stat.data});
             });
         });
     }
 
-    async writeFile(path, data, options = {encoding: 'utf8', flag: 'w', mode: 0o666, signal: null}) {
+    async writeFile(path, data, options = {encoding: 'utf8', flag: 'w', mode: 0o666, signal: null}, create = false) {
         return new Promise(async (resolve) => {
-            const exist = this.pathExist(path);
-            if (!exist.data) {
-                return resolve({
-                    data: null,
-                    error: true,
-                    message: 'Path does`nt exist!',
-                    road: 'fs-manager:writeFile:pathExist'
-                });
-            }
-            const stat = await this.getStats(path);
-            if (stat.error) {
-                return resolve({
-                    data: null,
-                    error: true,
-                    message: stat.error.message,
-                    road: 'fs-manager:writeFile:getStats'
-                });
-            }
-            if (!stat.data.isFile()) {
-                return resolve({
-                    data: null,
-                    error: true,
-                    message: 'Your path is not valid file!',
-                    road: 'fs-manager:writeFile:isFile'
-                });
+            if (!create) {
+                const exist = this.pathExist(path);
+                if (!exist.data) {
+                    return resolve({
+                        data: null,
+                        error: true,
+                        message: 'Path does`nt exist!',
+                        road: 'fs-manager:writeFile:pathExist'
+                    });
+                }
+                const stat = await this.getStats(path);
+                if (stat.error) {
+                    return resolve({
+                        data: null,
+                        error: true,
+                        message: stat.error.message,
+                        road: 'fs-manager:writeFile:getStats'
+                    });
+                }
+                if (!stat.data.isFile()) {
+                    return resolve({
+                        data: null,
+                        error: true,
+                        message: 'Your path is not valid file!',
+                        road: 'fs-manager:writeFile:isFile'
+                    });
+                }
             }
             let controller = null;
             if (options.signal === null) {
@@ -628,7 +640,7 @@ class FsManager {
                 const {signal} = controller;
                 options.signal = signal;
             }
-            writeFile(path, data, options, (err) => {
+            writeFile(path, data, options, async (err) => {
                 if (err !== null) {
                     return resolve({
                         data: null,
@@ -637,7 +649,9 @@ class FsManager {
                         road: 'fs-manager:writeFile:writeFile'
                     });
                 }
-                return resolve({data: null, error: false, controller: controller});
+                const stat = await this.getStats(path);
+                const data = await this.readFile(path, {encoding: options.encoding, flag: 'r', signal: options.signal});
+                return resolve({data: data.data, error: false, controller: controller, stat: stat.data});
             });
         });
     }

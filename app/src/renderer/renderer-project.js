@@ -4,23 +4,42 @@ const ios_cleaner = document.getElementById('ios_cleaner');
 const android_cleaner = document.getElementById('android_cleaner');
 const command_input_label = document.getElementById('command-input-label');
 const terminal = document.getElementById('terminal');
+const consoleType = {
+    command: "command",
+    output: "output",
+    error: "error",
+    info: "info"
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
     window.terminalDetail.listenCommandNode((ev, value) => {
         console.log('%c ev', 'background: #222; color: #bada55', ev);
         console.log('%c value', 'background: #222; color: #bada55', value);
-        if (value.type === 'command') {
+        if (value.type === consoleType.command) {
             const span = document.createElement('span');
             span.setAttribute('style', 'display: block;color: #976262;')
             span.innerHTML = value.data
             terminal.insertAdjacentElement('beforeend', span);
         }
-        if (value.type === 'output') {
+        if (value.type === consoleType.output) {
             const span = document.createElement('span');
             span.setAttribute('style', 'display: block;color: #976262;')
             span.innerHTML = value.data
             terminal.insertAdjacentElement('beforeend', span);
-        } else if (value.type === 'folder_change') {
+        }
+        if (value.type === consoleType.info) {
+            const span = document.createElement('span');
+            span.setAttribute('style', 'display: block;color: #976262;')
+            span.innerHTML = value.data
+            terminal.insertAdjacentElement('beforeend', span);
+        }
+        if (value.type === consoleType.error) {
+            const span = document.createElement('span');
+            span.setAttribute('style', 'display: block;color: #976262;')
+            span.innerHTML = value.data
+            terminal.insertAdjacentElement('beforeend', span);
+        }
+        if (value.type === 'folder_change') {
             command_input_label.innerText = value.data;
         }
         terminal.scrollTo(0, terminal.scrollHeight);
@@ -122,4 +141,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.projectDetail.startAndroidCleanerPreload(command.target);
         }
     });
+
+    const currentPath = await window.projectDetail.currentPath();
+    command_input_label.innerText = currentPath;
+
 });

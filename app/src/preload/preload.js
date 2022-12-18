@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('terminalDetail', {
 });*/
 contextBridge.exposeInMainWorld('projectDetail', {
     startRead: (value) => ipcRenderer.invoke('projectDetail:startRead', value),
+    currentPath: () => ipcRenderer.invoke('projectDetail:currentPath'),
     startAndroidCleanerPreload: (value) => ipcRenderer.invoke('projectDetail:startAndroidCleaner', value),
 });
 contextBridge.exposeInMainWorld('terminalDetail', {

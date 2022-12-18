@@ -14,7 +14,7 @@ class GradleManager {
 
     async getGradleVersion(mainWindow) {
         return new Promise(async (resolve) => {
-            await this.sendListen(mainWindow, 'Checking Homebrew version!', this.consoleType.info);
+            await this.sendListen(mainWindow, 'Checking Gradle version!', this.consoleType.info);
             const brewVersion = await this.childManager.executeCommand(
                 mainWindow,
                 'gradle -v',

@@ -5,7 +5,7 @@
       "name": "common.d.ts",
       "type": "replace",
       "multiple": false,
-      "regex": "/(\\/*Promise<unknown>\\/*)/",
+      "regex": "(\\/*Promise<unknown>\\/*)",
       "text": "Promise<any>",
       "plugin": "@awesome-cordova-plugins"
     },
@@ -14,7 +14,7 @@
       "name": "index.d.ts",
       "type": "replace",
       "multiple": false,
-      "regex": "/(\\/*\\/\\/\\/ <reference lib=\"es2017\" \\/>\\/*)/",
+      "regex": "(\\/*\\/\\/\\/ <reference lib=\"es2017\" \\/>\\/*)",
       "text": "// <reference lib=\"es2017\" />",
       "plugin": "@types"
     }

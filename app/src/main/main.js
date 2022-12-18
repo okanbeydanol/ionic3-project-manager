@@ -7,12 +7,18 @@ const request = require('request');
 const {homedir} = require('os');
 const {join} = require('path');
 const {FsManager} = require('../functions/fs-manager');
-const {PackageJsonManager} = require('../functions/package_json_control');
 const {AndroidCleaner} = require('../functions/android-cleaner');
-const {execSync, exec} = require("child_process");
-const {ChildProcess} = require("../functions/child_process");
+const {exec} = require("child_process");
+const {StartWatcher} = require("../functions/refresher");
+const {ZshrcManager} = require("../functions/zshrc-manager");
 const config_path = path.join(__dirname, '../config');
 (async () => {
+    const consoleType = {
+        command: "command",
+        output: "output",
+        error: "error",
+        info: "info"
+    }
     const config = await new FsManager().readFile(config_path + '/settings.json', {
         encoding: 'utf8',
         flag: 'r',
@@ -20,6 +26,7 @@ const config_path = path.join(__dirname, '../config');
     }).then((d) => {
         return JSON.parse(d.data);
     });
+    console.log('%c config', 'background: #222; color: #bada55', config);
     const folders = config.folders;
     let mainWindow = null;
     let dragDropWindow = null;
@@ -55,23 +62,6 @@ const config_path = path.join(__dirname, '../config');
             if (write.error) {
                 return write;
             }
-            await new ChildProcess().execCommand('cd ' + config.currentPath, (event) => {
-                if (event.error) {
-                    return {error: true, data: null, message: 'We can`r enter current folder!'};
-                }
-                if (event.type === 'stdout:end' && !event.error && event.data !== '') {
-                    return {
-                        error: false,
-                        data: event.data.trim()
-                    };
-                }
-                if (event.type === 'stderr:end' && !event.error && event.data !== '') {
-                    return {
-                        error: false,
-                        data: event.data.trim()
-                    };
-                }
-            }, dragDropWindow);
             return await get_all_data();
         });
         ipcMain.handle('projectDetail:startAndroidCleaner', async (_event, value) => {
@@ -80,6 +70,12 @@ const config_path = path.join(__dirname, '../config');
             const androidCleaner = await new AndroidCleaner().startAndroidCleaner(value, mainWindow);
             console.log('%c androidCleaner', 'background: #222; color: #bada55', androidCleaner);
         });
+        ipcMain.handle('projectDetail:currentPath', async (_event) => {
+            const a = await new ZshrcManager().getExports();
+            console.log('%c a', 'background: #222; color: #bada55', a);
+            return config.currentPath;
+        });
+
     };
     const openDragDropWindow = async () => {
         dragDropWindow = new BrowserWindow({
@@ -155,6 +151,28 @@ const config_path = path.join(__dirname, '../config');
         // Open the DevTools.
         await mainWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/projectDetail/index.html'));
         await mainWindow.webContents.openDevTools({mode: 'detach', activate: true});
+        await sendListen(mainWindow, '-------- AndroidManifest.xml Start WATCH! ----------', consoleType.info);
+        new StartWatcher(async (type, path) => {
+            const requestRegex = /(\/*<uses-permission android:name="android\.permission\.REQUEST_INSTALL_PACKAGES" \/>\/*)/;
+            const cameraRegex = /(\/*<uses-permission android:name="android\.permission\.CAMERA" \/>\/*)/;
+            let fileContent = await new FsManager().readFile(path, {
+                encoding: 'utf8',
+                flag: 'r',
+                signal: null
+            })
+            const requestRegexMatch = requestRegex.exec(fileContent.data);
+            if (requestRegexMatch) {
+                await sendListen(mainWindow, '-------- AndroidManifest REMOVING CAMERA PERMISSION ----------', consoleType.info);
+                fileContent.data = fileContent.data.replace(requestRegex, '');
+                await new FsManager().writeFile(path, fileContent.data);
+            }
+            const cameraRegexMatch = cameraRegex.exec(fileContent.data);
+            if (cameraRegexMatch) {
+                await sendListen(mainWindow, '-------- AndroidManifest REMOVING REQUEST_INSTALL_PACKAGES PERMISSION  ----------', consoleType.info);
+                fileContent.data = fileContent.data.replace(cameraRegex, '');
+                await new FsManager().writeFile(path, fileContent.data);
+            }
+        }, [ config.project_path + '/platforms/android/app/src/main/AndroidManifest.xml' ], [ 'change' ]);
         return {
             data: {
                 userInfo: userInfo.data,
@@ -312,6 +330,16 @@ const config_path = path.join(__dirname, '../config');
     }
 
 
+    const sendListen = async (mainWindow, text, type = null, error = false) => {
+        return new Promise(async (resolve) => {
+            mainWindow.webContents.send('command:listen', {
+                data: text,
+                type: type,
+                error: error
+            });
+            resolve(true);
+        });
+    }
     const readConfigXml = async () => {
         const configExist = await new FsManager().pathExist(config.project_path + '/config.xml');
         if (!configExist.data) {

@@ -12,7 +12,6 @@ class BrewManager {
     constructor() {
     }
 
-
     async getBrewVersion(mainWindow) {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Checking Homebrew version!', this.consoleType.info);
@@ -79,20 +78,6 @@ class BrewManager {
         });
     }
 
-
-    async checkPermission(mainWindow) {
-        return new Promise(async (resolve) => {
-            await this.sendListen(mainWindow, 'Checking ~/homebrew folder permission!', this.consoleType.info);
-            const checkPermission = await this.childManager.executeCommand(
-                mainWindow,
-                'chmod u+rwx ~/homebrew',
-                null,
-                'You do not have permission to access ~/homebrew folder.'
-            );
-            return resolve(checkPermission);
-        });
-    }
-
     async exportBrewEcho(mainWindow) {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Exporting Homebrew to ~/.zprofile.', this.consoleType.info);
@@ -109,10 +94,6 @@ class BrewManager {
     async installBrew(mainWindow) {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Trying install Homebrew!', this.consoleType.info);
-            /*            const checkPermission = await this.checkPermission(mainWindow);
-                        if (checkPermission.error) {
-                            return resolve(checkPermission);
-                        }*/
             const removeFolder = await this.removeFolder(mainWindow);
             if (removeFolder.error) {
                 return resolve(removeFolder);

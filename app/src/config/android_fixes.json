@@ -1,22 +1,186 @@
-{
-  "fixes": [
-    {
-      "path": "/@awesome-cordova-plugins/core/decorators/common.d.ts",
-      "name": "common.d.ts",
-      "type": "replace",
-      "multiple": false,
-      "regex": "/(\\/*Promise<unknown>\\/*)/",
-      "text": "Promise<any>",
-      "plugin": "@awesome-cordova-plugins"
-    },
-    {
-      "path": "/@types/node/index.d.ts",
-      "name": "index.d.ts",
-      "type": "replace",
-      "multiple": false,
-      "regex": "/(\\/*\\/\\/\\/ <reference lib=\"es2017\" \\/>\\/*)/",
-      "text": "// <reference lib=\"es2017\" />",
-      "plugin": "@types"
-    }
-  ]
-}
+[
+  {
+    "path": "/cordova-plugin-file-opener2/plugin.xml",
+    "name": "plugin.xml",
+    "type": "remove",
+    "plugin": "cordova-plugin-file-opener2",
+    "order": "before_build",
+    "folder": "plugins",
+    "data": [
+      {
+        "regex": "(\\/* +<uses-permission android:name=\"android\\.permission\\.REQUEST_INSTALL_PACKAGES\" \\/>\\/*)"
+      }
+    ]
+  },
+  {
+    "path": "/com-darryncampbell-cordova-plugin-intent/plugin.xml",
+    "name": "plugin.xml",
+    "type": "remove",
+    "plugin": "com-darryncampbell-cordova-plugin-intent",
+    "order": "before_build",
+    "folder": "plugins",
+    "data": [
+      {
+        "regex": "(\\/* +<config-file target=\"AndroidManifest\\.xml\" platform=\"android\" parent=\"\\/manifest\" mode=\"merge\">\\r\n +<uses-permission android:name=\"android.permission.REQUEST_INSTALL_PACKAGES\" \\/>\\r\n +<\\/config-file>\\r\n\\/*)"
+      }
+    ]
+  },
+  {
+    "path": "/cordova-plugin-camera/src/android/CameraLauncher.java",
+    "name": "CameraLauncher.java",
+    "type": "replace",
+    "plugin": "cordova-plugin-camera",
+    "order": "before_build",
+    "folder": "plugins",
+    "data": [
+      {
+        "regex": "(\\/* +if\\(intent.resolveActivity\\(mPm\\) != null\\)\n +{\n +this\\.cordova\\.startActivityForResult\\(\\(CordovaPlugin\\) this, intent, \\(CAMERA \\+ 1\\) \\* 16 \\+ returnType \\+ 1\\);\n +}\n +else\n +{\n +LOG\\.d\\(LOG_TAG, \"Error: You don't have a default camera\\.  Your device may not be CTS complaint\\.\"\\);\n +}\\/*)",
+        "text": "            this.cordova.startActivityForResult((CordovaPlugin) this, intent, (CAMERA + 1) * 16 + returnType + 1);"
+      }
+    ]
+  },
+  {
+    "path": "/cordova-plugin-camera/src/android/CameraLauncher.java",
+    "name": "CameraLauncher.java",
+    "type": "replace",
+    "plugin": "cordova-plugin-camera",
+    "order": "before_build",
+    "folder": "platforms/android",
+    "data": [
+      {
+        "regex": "(\\/* +if\\(intent.resolveActivity\\(mPm\\) != null\\)\n +{\n +this\\.cordova\\.startActivityForResult\\(\\(CordovaPlugin\\) this, intent, \\(CAMERA \\+ 1\\) \\* 16 \\+ returnType \\+ 1\\);\n +}\n +else\n +{\n +LOG\\.d\\(LOG_TAG, \"Error: You don't have a default camera\\.  Your device may not be CTS complaint\\.\"\\);\n +}\\/*)",
+        "text": "            this.cordova.startActivityForResult((CordovaPlugin) this, intent, (CAMERA + 1) * 16 + returnType + 1);"
+      }
+    ]
+  },
+  {
+    "path": "/app/src/main/java/com/skillcat/MainActivity.java",
+    "name": "MainActivity.java",
+    "type": "replace",
+    "plugin": "android",
+    "order": "before_build",
+    "folder": "platforms/android",
+    "data": [
+      {
+        "regex": "(\\/* +Bundle extras = getIntent\\(\\)\\.getExtras\\(\\);\\/*)",
+        "text": "        Bundle extras = getIntent().getExtras();\n        if (extras != null) {\n            PushPlugin.sendExtras(extras);\n            intentDone = true;\n        }\n"
+      },
+      {
+        "regex": "(\\/*import org.apache.cordova.\\*;\\/*)",
+        "text": "import com.adobe.phonegap.push.PushPlugin;\nimport org.apache.cordova.*;\n"
+      },
+      {
+        "regex": "(\\/*public class MainActivity extends CordovaActivity\n{\\/*)",
+        "text": "public class MainActivity extends CordovaActivity\n{\n    protected boolean intentDone = false;\n    @Override\n    public void onResume()\n    {\n        super.onResume();\n        Bundle extras = getIntent().getExtras();\n        if (extras != null && !intentDone) {\n            PushPlugin.sendExtras(extras);\n            intentDone = true;\n        }\n    }\n"
+      }
+    ]
+  },
+  {
+    "path": "/cordova-plugin-qrscanner/plugin.xml",
+    "name": "plugin.xml",
+    "type": "remove",
+    "plugin": "cordova-plugin-qrscanner",
+    "order": "before_build",
+    "folder": "plugins",
+    "data": [
+      {
+        "regex": "(\\/*<uses-permission android:name=\"android\\.permission\\.CAMERA\" android:required=\"false\" \\/>\\/*)"
+      },
+      {
+        "regex": "(\\/*<uses-feature android:name=\"android\\.hardware\\.camera\" android:required=\"false\" \\/>\\/*)"
+      }
+    ]
+  },
+  {
+    "path": "/cordova-plugin-contact/src/android/ContactManager.java",
+    "name": "ContactManager.java",
+    "type": "replace",
+    "plugin": "cordova-plugin-contact",
+    "order": "before_build",
+    "folder": "plugins",
+    "data": [
+      {
+        "regex": "(\\/* +else if \\(action\\.equals\\(\"save\"\\)\\) {\n +if\\(PermissionHelper\\.hasPermission\\(this, WRITE\\)\\)\\/*)",
+        "text": "        else if (action.equals(\"save\")) {\n            if(PermissionHelper.hasPermission(this, WRITE) && PermissionHelper.hasPermission(this, READ))"
+      },
+      {
+        "regex": "(\\/* +else if \\(action\\.equals\\(\"remove\"\\)\\) {\n +if\\(PermissionHelper\\.hasPermission\\(this, WRITE\\)\\)\\/*)",
+        "text": "        else if (action.equals(\"remove\")) {\n            if(PermissionHelper.hasPermission(this, WRITE) && PermissionHelper.hasPermission(this, READ))"
+      },
+      {
+        "regex": "(\\/* +JSONArray res = contactAccessor\\.search\\(filter, options\\);\n +callbackContext\\.success\\(res\\);\\/*)",
+        "text": "                try {\n                    JSONArray res = contactAccessor.search(filter, options);\n                    callbackContext.success(res);\n                } catch (SecurityException e) {\n                    getReadPermission(SEARCH_REQ_CODE);\n                }"
+      },
+      {
+        "regex": "(\\/* +case SAVE_REQ_CODE:\n +save\\(executeArgs\\);\\/*)",
+        "text": "            case SAVE_REQ_CODE:\n                if (!PermissionHelper.hasPermission(this, READ)) getReadPermission(SAVE_REQ_CODE);\n                else save(executeArgs);"
+      },
+      {
+        "regex": "(\\/* +case REMOVE_REQ_CODE:\n +save\\(executeArgs\\);\\/*)",
+        "text": "            case SAVE_REQ_CODE:\n                if (!PermissionHelper.hasPermission(this, READ)) getReadPermission(REMOVE_REQ_CODE);\n                else remove(executeArgs);"
+      }
+    ]
+  },
+  {
+    "path": "/cordova-plugin-contact/src/android/ContactManager.java",
+    "name": "ContactManager.java",
+    "type": "replace",
+    "plugin": "cordova-plugin-contact",
+    "order": "before_build",
+    "folder": "platforms/android",
+    "data": [
+      {
+        "regex": "(\\/* +else if \\(action\\.equals\\(\"save\"\\)\\) {\n +if\\(PermissionHelper\\.hasPermission\\(this, WRITE\\)\\)\\/*)",
+        "text": "        else if (action.equals(\"save\")) {\n            if(PermissionHelper.hasPermission(this, WRITE) && PermissionHelper.hasPermission(this, READ))"
+      },
+      {
+        "regex": "(\\/* +else if \\(action\\.equals\\(\"remove\"\\)\\) {\n +if\\(PermissionHelper\\.hasPermission\\(this, WRITE\\)\\)\\/*)",
+        "text": "        else if (action.equals(\"remove\")) {\n            if(PermissionHelper.hasPermission(this, WRITE) && PermissionHelper.hasPermission(this, READ))"
+      },
+      {
+        "regex": "(\\/* +JSONArray res = contactAccessor\\.search\\(filter, options\\);\n +callbackContext\\.success\\(res\\);\\/*)",
+        "text": "                try {\n                    JSONArray res = contactAccessor.search(filter, options);\n                    callbackContext.success(res);\n                } catch (SecurityException e) {\n                    getReadPermission(SEARCH_REQ_CODE);\n                }"
+      },
+      {
+        "regex": "(\\/* +case SAVE_REQ_CODE:\n +save\\(executeArgs\\);\\/*)",
+        "text": "            case SAVE_REQ_CODE:\n                if (!PermissionHelper.hasPermission(this, READ)) getReadPermission(SAVE_REQ_CODE);\n                else save(executeArgs);"
+      },
+      {
+        "regex": "(\\/* +case REMOVE_REQ_CODE:\n +save\\(executeArgs\\);\\/*)",
+        "text": "            case SAVE_REQ_CODE:\n                if (!PermissionHelper.hasPermission(this, READ)) getReadPermission(REMOVE_REQ_CODE);\n                else remove(executeArgs);"
+      }
+    ]
+  },
+  {
+    "path": "/app/src/main/AndroidManifest.xml",
+    "name": "AndroidManifest.xml",
+    "type": "remove",
+    "plugin": "android",
+    "order": "before_build",
+    "folder": "platforms/android",
+    "data": [
+      {
+        "regex": "(\\/*<uses-permission android:name=\"android\\.permission\\.REQUEST_INSTALL_PACKAGES\" \\/>\\/*)"
+      },
+      {
+        "regex": "(\\/*<uses-permission android:name=\"android\\.permission\\.CAMERA\" \\/>\\/*)"
+      }
+    ]
+  },
+  {
+    "path": "/app/src/main/AndroidManifest.xml",
+    "name": "AndroidManifest.xml",
+    "type": "remove",
+    "plugin": "android",
+    "order": "before_build",
+    "folder": "platforms/android",
+    "data": [
+      {
+        "regex": "(\\/*<uses-permission android:name=\"android\\.permission\\.REQUEST_INSTALL_PACKAGES\" \\/>\\/*)"
+      },
+      {
+        "regex": "(\\/*<uses-permission android:name=\"android\\.permission\\.CAMERA\" \\/>\\/*)"
+      }
+    ]
+  }
+]
