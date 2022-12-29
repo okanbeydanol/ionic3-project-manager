@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Password Required</title>
+    <meta
+        content="default-src * self blob: data: gap:; style-src * self 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * self 'unsafe-inline' blob: data: gap:; connect-src self * 'unsafe-inline' blob: data: gap:; frame-src * self blob: data: gap:;"
+        http-equiv="Content-Security-Policy">
+    <link href="./styles.css" rel="stylesheet" type="text/css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <script
+        crossorigin="anonymous"
+        integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU="
+        src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <div style="    text-align: center;
+    font-size: 18px;">Password Required
+    </div>
+    <div style="font-size: 14px;
+    color: #4c5f83;
+    text-align: center;
+    margin-top: 10px;">We need your password access root folder for install environment apps!
+    </div>
+    <input class="password-input" id="password-input" placeholder="Input your password!" style="    display: flex;
+    margin-left: auto;
+    margin-right: auto;
+    width: 222px;
+    margin-top: 10px;
+    text-align: center;" type="text">
+    <button class="password-button" id="password-button" type="button">Enter</button>
+</div>
+<div class="loader-container" id="loader-container">
+    <div class="loader" id="loader"></div>
+</div>
+</body>
+<script src="../../renderer/renderer-password-load.js"></script>
+</html>

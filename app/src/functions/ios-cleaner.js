@@ -4,13 +4,11 @@ const { FsManager } = require('./fs-manager');
 const path = require('path');
 const { PackageJsonManager } = require('./package_json_control');
 const { EnvironmentManager } = require('./environment-manager');
-const { PasswordManager } = require('./password-manager');
 const config_path = path.join(__dirname, '../config');
 
-class AndroidCleaner {
+class IosCleaner {
     CordovaManager = new CordovaManager();
     childManager = new ChildProcess();
-    passwordManager = new PasswordManager();
     environmentManager = new EnvironmentManager();
     consoleType = {
         command: 'command',
@@ -22,29 +20,19 @@ class AndroidCleaner {
     constructor() {
     }
 
-    async startAndroidCleaner(command, mainWindow, callback = () => {
-    }) {
+    async startIosCleaner(command, mainWindow) {
         return new Promise(async (resolve) => {
-            const environmentCheck = await this.environmentManager.environmentCheck(mainWindow, (data) => {
-                console.log('%c data', 'background: #222; color: #bada55', data);
-                callback({ type: data.data, data: data.type });
-            });
+            const environmentCheck = await this.environmentManager.environmentCheck(mainWindow);
             if (environmentCheck.error) {
                 return resolve(environmentCheck);
             }
             if (command.includes('node_modules')) {
                 const refreshNodeModules = await this.refresh_only_node_modules(mainWindow);
-                if (refreshNodeModules.error) {
-                    return resolve(refreshNodeModules);
-                }
                 console.log('%c refreshNodeModules', 'background: #222; color: #bada55', refreshNodeModules);
             }
             if (command.includes('prepare')) {
-                const refreshAndroid = await this.refresh_only_android(mainWindow);
-                if (refreshAndroid.error) {
-                    return resolve(refreshAndroid);
-                }
-                console.log('%c refreshAndroid', 'background: #222; color: #bada55', refreshAndroid);
+                const refreshIos = await this.refresh_only_ios(mainWindow);
+                console.log('%c refreshIos', 'background: #222; color: #bada55', refreshIos);
             }
         });
     }
@@ -100,7 +88,7 @@ class AndroidCleaner {
         });
     }
 
-    async refresh_only_android(mainWindow) {
+    async refresh_only_ios(mainWindow) {
         return new Promise(async (resolve) => {
             this.config = await new FsManager().readFile(config_path + '/settings.json', {
                 encoding: 'utf8',
@@ -113,122 +101,117 @@ class AndroidCleaner {
             await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.WWW);
             await this.sendListen(mainWindow, 'Deleting the plugins folder!', this.consoleType.info);
             await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.PLUGINS);
-            await this.sendListen(mainWindow, 'Deleting the android folder!', this.consoleType.info);
-            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.ANDROID);
+            await this.sendListen(mainWindow, 'Deleting the ios folder!', this.consoleType.info);
+            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.IOS);
 
             await this.CordovaManager.fixMacOsReleaseName(mainWindow, false);
 
             const check_webview_exist = await this.check_plugin_exist('cordova-plugin-ionic-webview');
-            if (check_webview_exist) {
-                await this.sendListen(mainWindow, 'Cordova webview plugin is removing!', this.consoleType.info);
-                const removeCordovaWebview = await this.childManager.executeCommand(
+            if (!check_webview_exist) {
+                await this.sendListen(mainWindow, 'Cordova webview plugin is adding!', this.consoleType.info);
+                const addCordovaWebview = await this.childManager.executeCommand(
                     mainWindow,
-                    'unset npm_config_prefix&&npm uninstall cordova-plugin-ionic-webview',
-                    null,
-                    'When try to remove webview. Something get wrong!'
+                    'unset npm_config_prefix&&npm install cordova-plugin-ionic-webview',
+                    'export NVM_DIR="$HOME/.nvm"\n' +
+                    '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                    '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                    'When try to adding webview. Something get wrong!'
                 );
-                if (removeCordovaWebview.error) {
-                    return resolve(removeCordovaWebview);
+                if (addCordovaWebview.error) {
+                    return resolve(addCordovaWebview);
                 }
             }
 
             const check_native_webview_exist = await this.check_plugin_exist('@ionic-native/ionic-webview');
-            if (check_native_webview_exist) {
-                await this.sendListen(mainWindow, 'Cordova native webview plugin is removing!', this.consoleType.info);
-                const removeCordovaNativeWebview = await this.childManager.executeCommand(
+            if (!check_native_webview_exist) {
+                await this.sendListen(mainWindow, 'Cordova native webview plugin is adding!', this.consoleType.info);
+                const addCordovaNativeWebview = await this.childManager.executeCommand(
                     mainWindow,
-                    'unset npm_config_prefix&&npm uninstall @ionic-native/ionic-webview',
-                    null,
-                    'When try to remove webview. Something get wrong!'
+                    'unset npm_config_prefix&&npm install @ionic-native/ionic-webview',
+                    'export NVM_DIR="$HOME/.nvm"\n' +
+                    '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
+                    '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                    'When try to adding webview. Something get wrong!'
                 );
-                if (removeCordovaNativeWebview.error) {
-                    return resolve(removeCordovaNativeWebview);
+                if (addCordovaNativeWebview.error) {
+                    return resolve(addCordovaNativeWebview);
                 }
             }
 
 
-            await this.sendListen(mainWindow, 'Remove android platform!', this.consoleType.info);
-            const removeAndroidPlatform = await this.childManager.executeCommand(
+            await this.sendListen(mainWindow, 'Remove ios platform!', this.consoleType.info);
+            const removeIosPlatform = await this.childManager.executeCommand(
                 mainWindow,
-                'ionic cordova platform remove android',
+                'ionic cordova platform remove ios',
                 null,
-                'When try to remove android platform. Something get wrong!'
+                'When try to remove ios platform. Something get wrong!'
             );
-            if (removeAndroidPlatform.error) {
-                return resolve(removeAndroidPlatform);
+            if (removeIosPlatform.error) {
+                return resolve(removeIosPlatform);
             }
 
-            const addAndroidResources = await this.childManager.executeCommand(
+            await this.sendListen(mainWindow, 'Add ios resources!', this.consoleType.info);
+            const addIosResources = await this.childManager.executeCommand(
                 mainWindow,
-                'ionic cordova resources android --force',
-                null,
-                'When try to add android platform. Something get wrong!'
-            );
-            if (addAndroidResources.error) {
-                return resolve(addAndroidResources);
-            }
-
-            const addAndroidPlatform = await this.childManager.executeCommand(
-                mainWindow,
-                'ionic cordova platform add android',
+                'ionic cordova resources ios --force',
                 null,
                 'When try to add android platform. Something get wrong!'
             );
-            if (addAndroidPlatform.error) {
-                return resolve(addAndroidPlatform);
+            if (addIosResources.error) {
+                return resolve(addIosResources);
             }
 
-            let server = 'stg';
-            const cmd_node = 'export NODE_ENV=' + (!server ? 'dev' : server);
-
-            const cmd_prepare_android = cmd_node + ' && ionic cordova prepare android';
-            await this.sendListen(mainWindow, 'Preparing android!', this.consoleType.info);
-            const prepareAndroid = await this.childManager.executeCommand(
+            await this.sendListen(mainWindow, 'Add ios platform!', this.consoleType.info);
+            const addIosPlatform = await this.childManager.executeCommand(
                 mainWindow,
-                cmd_prepare_android,
+                'ionic cordova platform add ios',
                 null,
-                'When try to remove webview. Something get wrong!'
+                'When try to add ios platform. Something get wrong!'
             );
-            if (prepareAndroid.error) {
-                return resolve(prepareAndroid);
+            if (addIosPlatform.error) {
+                return resolve(addIosPlatform);
             }
 
-            await this.sendListen(mainWindow, '--------BEFORE BUILD ANDROID FIXES----------', this.consoleType.info);
-            const editFilesBefore = await this.editFiles(mainWindow, 'before_build', 'platforms/android', this.config.project_path);
+            await this.sendListen(mainWindow, 'Ios preparing!', this.consoleType.info);
+            const IosPrepare = await this.childManager.executeCommand(
+                mainWindow,
+                'ionic cordova prepare ios',
+                null,
+                'When try to add prepare ios. Something get wrong!'
+            );
+            if (IosPrepare.error) {
+                return resolve(IosPrepare);
+            }
+
+
+            await this.sendListen(mainWindow, '--------BEFORE BUILD IOS FIXES----------', this.consoleType.info);
+            const editFilesBefore = await this.editFiles(mainWindow, 'before_build', 'platforms/ios', this.config.project_path);
             if (editFilesBefore.error) {
                 return resolve(editFilesBefore);
             }
             await this.sendListen(mainWindow, '--------BEFORE BUILD ANDROID FIXES END----------', this.consoleType.info);
 
-            const cmd_build_aot_android = cmd_node + ' && ionic cordova build android --release --aot';
-            await this.sendListen(mainWindow, 'Build android!', this.consoleType.info);
-            const buildAndroid = await this.childManager.executeCommand(
+
+            await this.sendListen(mainWindow, 'Build Ios!', this.consoleType.info);
+            let server = 'dev';
+            const cmd_node = 'export NODE_ENV=' + (!server ? 'dev' : server);
+            const buildIos = await this.childManager.executeCommand(
                 mainWindow,
-                cmd_build_aot_android,
+                cmd_node + '&&ionic cordova build ios --aot',
                 null,
-                'When try to remove webview. Something get wrong!'
+                'When try to build ios. Something get wrong!'
             );
-            if (buildAndroid.error) {
-                return resolve(buildAndroid);
+            if (buildIos.error) {
+                return resolve(buildIos);
             }
 
-            await this.sendListen(mainWindow, '--------AFTER BUILD ANDROID FIXES----------', this.consoleType.info);
-            const editFilesAfter = await this.editFiles(mainWindow, 'after_build', 'platforms/android', this.config.project_path);
+            await this.sendListen(mainWindow, '--------AFTER BUILD IOS FIXES----------', this.consoleType.info);
+            const editFilesAfter = await this.editFiles(mainWindow, 'before_build', 'platforms/ios', this.config.project_path);
             if (editFilesAfter.error) {
                 return resolve(editFilesAfter);
             }
             await this.sendListen(mainWindow, '--------AFTER BUILD ANDROID FIXES END----------', this.consoleType.info);
-
-            /*            if (keystore_config.path !== null) {
-                            const cmd_build_apk = cmd_node + ' && ionic cordova build android --prod --release -- -- --keystore="' + keystore + '" --storePassword="' + keystore_config.pass + '" --alias="' + keystore_config.alias + '" --password="' + keystore_config.pass + '" --packageType=apk';
-                            const cmd_build_aab = cmd_node + ' && ionic cordova build android --prod --release -- -- --keystore="' + keystore + '" --storePassword="' + keystore_config.pass + '" --alias="' + keystore_config.alias + '" --password="' + keystore_config.pass + '" --packageType=bundle';
-                            await execute_command(cmd_build_apk, "Build Android APK");
-                            await execute_command(cmd_build_aab, "Build Android AAB");
-                        }*/
-
             return resolve({ error: false, data: null });
-
-
         });
     }
 
@@ -334,4 +317,4 @@ class AndroidCleaner {
 }
 
 
-module.exports = { AndroidCleaner };
+module.exports = { IosCleaner };

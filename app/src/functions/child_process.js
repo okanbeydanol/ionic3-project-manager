@@ -1,79 +1,81 @@
-const {exec, execSync} = require('child_process');
+const { exec, execSync } = require('child_process');
 const path = require('path');
-const {FsManager} = require('./fs-manager');
+const { FsManager } = require('./fs-manager');
+const { ZshrcManager } = require('./zshrc-manager');
+const { app } = require('electron');
 const config_path = path.join(__dirname, '../config');
 
 class ChildProcess {
     colors = [
         {
             code: '[0m',
-            color: 'none',
+            color: 'none'
         },
         {
             code: '[0;30m',
-            color: '#000000',
+            color: '#000000'
         },
         {
             code: '[0;31m',
-            color: '#FF0000',
+            color: '#FF0000'
         },
         {
             code: '[1;30m',
-            color: '#808080',
+            color: '#808080'
         },
         {
             code: '[1;31m',
-            color: '#FFCCCB',
+            color: '#FFCCCB'
         },
         {
             code: '[0;32m',
-            color: '#008000',
+            color: '#008000'
         },
         {
             code: '[1;32m',
-            color: '#90EE90',
+            color: '#90EE90'
         },
         {
             code: '[0;33m',
-            color: '#A52A2A',
+            color: '#A52A2A'
         },
         {
             code: '[1;33m',
-            color: '#FFFF00',
+            color: '#FFFF00'
         },
         {
             code: '[0;34m',
-            color: '#0000FF',
+            color: '#0000FF'
         },
         {
             code: '[1;34m',
-            color: '#ADD8E6',
+            color: '#ADD8E6'
         },
         {
             code: '[0;35m',
-            color: '#800080',
+            color: '#800080'
         },
         {
             code: '[1;35m',
-            color: '#8467D7',
+            color: '#8467D7'
         },
         {
             code: '[0;36m',
-            color: '#00FFFF',
+            color: '#00FFFF'
         },
         {
             code: '[1;36m',
-            color: '#E0FFFF',
+            color: '#E0FFFF'
         },
         {
             code: '[0;37m',
-            color: '#D3D3D3',
+            color: '#D3D3D3'
         },
         {
             code: '[1;37m',
-            color: '#FFFFFF',
+            color: '#FFFFFF'
         }
-    ]
+    ];
 
     config_path = path.join(__dirname, '../config');
     config = null;
@@ -82,11 +84,11 @@ class ChildProcess {
     execClose = null;
     childProcessExec;
     consoleType = {
-        command: "command",
-        output: "output",
-        error: "error",
-        info: "info"
-    }
+        command: 'command',
+        output: 'output',
+        error: 'error',
+        info: 'info'
+    };
 
     constructor() {
     }
@@ -98,7 +100,7 @@ class ChildProcess {
         encoding: 'utf8',
         signal: null,
         timeout: 0,
-        maxBuffer: 2024 * 2024, //increase here
+        maxBuffer: 10000 * 10000, //increase here
         killSignal: 'SIGTERM',
         cwd: null,
         env: null,
@@ -111,9 +113,8 @@ class ChildProcess {
                 signal: null
             });
             options.cwd = JSON.parse(config.data).currentPath;
-            console.log('%c options.cwd', 'background: #222; color: #bada55', options.cwd);
             this.controller = new AbortController();
-            const {signal} = this.controller;
+            const { signal } = this.controller;
             options.signal = options.signal ? options.signal : signal;
             this.childProcessExec = exec
             (
@@ -126,24 +127,23 @@ class ChildProcess {
                             error: true,
                             type: 'error:end',
                             message: error.message,
-                            road: 'child_process.js:execCommand:exec',
+                            road: 'child_process.js:execCommand:exec'
                         });
                         return resolve(false);
                     }
-
                     callback({
                         data: stderr,
                         error: false,
                         type: 'stdout:end',
                         signal: options.signal,
-                        road: 'child_process.js:execCommand:exec',
+                        road: 'child_process.js:execCommand:exec'
                     });
                     callback({
                         data: stdout,
                         error: false,
                         type: 'stderr:end',
                         signal: options.signal,
-                        road: 'child_process.js:execCommand:exec',
+                        road: 'child_process.js:execCommand:exec'
                     });
                     return resolve(true);
                 });
@@ -160,7 +160,7 @@ class ChildProcess {
                     data: dat.join('\n').trimStart(),
                     error: false,
                     signal: options.signal,
-                    type: 'stdout',
+                    type: 'stdout'
                 });
             });
 
@@ -174,7 +174,7 @@ class ChildProcess {
                     data: dat.join('\n').trimStart(),
                     error: false,
                     signal: options.signal,
-                    type: 'stderr',
+                    type: 'stderr'
                 });
             });
             if (this.execClose !== null) {
@@ -229,7 +229,7 @@ class ChildProcess {
                 }
                 m.forEach((match, groupIndex) => {
                     if (match && !paths.find(o => o === match)) {
-                        paths.push(match)
+                        paths.push(match);
                     }
                 });
             }
@@ -256,11 +256,10 @@ class ChildProcess {
                                 this.config.currentPath = '/' + this.config.currentPath.split('/').slice(1, this.config.currentPath.split('/').length - 1).join('/');
                                 await new FsManager().writeFile(this.config_path + '/settings.json', JSON.stringify(this.config));
                             } else if (s === '~') {
-                                const checkH = await this.checkHome();
-                                this.config.currentPath = checkH.data;
+                                this.config.currentPath = app.getPath('home');
                                 await new FsManager().writeFile(this.config_path + '/settings.json', JSON.stringify(this.config));
                             } else {
-                                const currentDir = await new FsManager().readDir(this.config.currentPath)
+                                const currentDir = await new FsManager().readDir(this.config.currentPath);
                                 const findIndex = currentDir.data.findIndex((o) => o.name.trim() === s.trim());
                                 if (findIndex !== -1 && currentDir.data[findIndex].isDirectory) {
                                     this.config.currentPath = this.config.currentPath + '/' + s;
@@ -268,7 +267,7 @@ class ChildProcess {
                                 }
                             }
                             return resolve(this.config.currentPath);
-                        })
+                        });
                     }, Promise.resolve()).finally(async () => {
                         mainWindow.webContents.send('command:listen', {
                             type: 'folder_change'
@@ -283,31 +282,10 @@ class ChildProcess {
                 }).then((d) => {
                     return JSON.parse(d.data);
                 });
-                return resolve(this.config.currentPath)
+                return resolve(this.config.currentPath);
             }
         });
     }
-
-    async checkHome() {
-        return new Promise((resolve) => {
-            const home = execSync('echo ~', {encoding: 'utf8'});
-            if (home === '') {
-                return resolve({
-                    data: home,
-                    error: true,
-                    type: 'stdout:end',
-                    road: 'child_process.js:execCommand:exec'
-                });
-            }
-            return resolve({
-                data: home,
-                error: false,
-                type: 'stdout:end',
-                road: 'child_process.js:execCommand:exec'
-            });
-        });
-    }
-
 
     async executeCommand(mainWindow, command, exCommand = null, errorMessage = null, callback = () => {
     }, print = {
@@ -319,18 +297,20 @@ class ChildProcess {
     }) {
         return new Promise(async (resolve) => {
             if (print.command) {
-                await this.sendListen(mainWindow, command, this.consoleType.command, false)
+                await this.sendListen(mainWindow, command, this.consoleType.command, false);
             }
             const outputs = {
                 stderrEnd: null,
                 stdoutEnd: null,
                 errorEnd: null,
-                error: false,
-            }
-            await this.execCommandPrivate(exCommand !== null ? exCommand + '&&' + command : command, async (event) => {
+                error: false
+            };
+            const exportText = await new ZshrcManager().getExports();
+            console.log('command: ', command);
+            await this.execCommandPrivate(exCommand !== null ? exportText + '\n' + exCommand + '\n' + command : exportText + '\n' + command, async (event) => {
                 if (event.error) {
                     if (print.endError && errorMessage) {
-                        await this.sendListen(mainWindow, errorMessage, this.consoleType.error, true)
+                        await this.sendListen(mainWindow, errorMessage, this.consoleType.error, true);
                     }
 
                     outputs.error = true;
@@ -339,54 +319,56 @@ class ChildProcess {
                         data: false,
                         error: true,
                         type: 'error:end',
-                        message: event.message,
+                        message: event.message
                     });
                 }
 
                 if (event.type === 'stdout') {
                     if (print.liveOutput) {
-                        await this.sendListen(mainWindow, event.data.trim(), this.consoleType.output, true)
+                        await this.sendListen(mainWindow, event.data.trim(), this.consoleType.output, true);
                     }
                     callback({
                         data: event.data.trim(),
                         error: false,
-                        type: 'stdout',
+                        type: 'stdout'
                     });
                 }
 
                 if (event.type === 'stderr') {
                     if (print.liveOutput) {
-                        await this.sendListen(mainWindow, event.data.trim(), this.consoleType.output, true)
+                        await this.sendListen(mainWindow, event.data.trim(), this.consoleType.output, true);
                     }
                     callback({
                         data: event.data.trim(),
                         error: false,
-                        type: 'stderr',
+                        type: 'stderr'
                     });
                 }
 
                 if (event.type === 'stdout:end') {
-                    outputs.stdoutEnd = event.data.trim();
-                    if (print.endOutput) {
-                        await this.sendListen(mainWindow, event.data.trim(), this.consoleType.output, true)
+                    let text = event.data.trim();
+                    outputs.stdoutEnd = text;
+                    if (print.endOutput && text.length < 780) {
+                        await this.sendListen(mainWindow, text, this.consoleType.output, true);
                     }
 
                     callback({
                         data: event.data.trim(),
                         error: false,
-                        type: 'stdout:end',
+                        type: 'stdout:end'
                     });
                 }
 
                 if (event.type === 'stderr:end') {
-                    outputs.stderrEnd = event.data.trim();
-                    if (print.endOutput) {
-                        await this.sendListen(mainWindow, event.data.trim(), this.consoleType.output, true)
+                    let text = event.data.trim();
+                    outputs.stderrEnd = text;
+                    if (print.endOutput && text.length < 780) {
+                        await this.sendListen(mainWindow, text, this.consoleType.output, true);
                     }
                     callback({
                         data: event.data.trim(),
                         error: false,
-                        type: 'stderr:end',
+                        type: 'stderr:end'
                     });
                 }
                 if (event.type === 'close') {
@@ -398,9 +380,10 @@ class ChildProcess {
                     } else {
                         data = outputs.stderrEnd;
                     }
-                    return resolve({error: outputs.error, data: data, message: outputs.errorEnd})
+
+                    return resolve({ error: outputs.error, data: data, message: outputs.errorEnd });
                 }
-            }, mainWindow)
+            }, mainWindow);
         });
     }
 
@@ -417,4 +400,4 @@ class ChildProcess {
 }
 
 
-module.exports = {ChildProcess};
+module.exports = { ChildProcess };

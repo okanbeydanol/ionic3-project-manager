@@ -9,8 +9,8 @@
     "@electron-forge/maker-rpm": "^6.0.3",
     "@electron-forge/maker-squirrel": "^6.0.3",
     "@electron-forge/maker-zip": "^6.0.3",
-    "electron-builder": "^23.6.0",
     "electron": "^22.0.0",
+    "electron-builder": "^23.6.0",
     "electron-devtools-installer": "^3.2.0"
   },
   "scripts": {
@@ -23,11 +23,11 @@
     "child_process": "^1.0.2",
     "chokidar": "^3.5.3",
     "electron-log": "^4.4.8",
-    "electron-reload": "^2.0.0-alpha.1",
     "electron-search-devtools": "^1.8.7",
     "electron-squirrel-startup": "^1.0.0",
     "fs": "0.0.1-security",
     "get-os-info": "^1.0.2",
+    "jquery": "^3.6.3",
     "nodemon": "^2.0.20",
     "remote": "^0.0.7",
     "request": "^2.88.2",

@@ -18,9 +18,7 @@ class IonicManager {
             const ionicVersion = await this.childManager.executeCommand(
                 mainWindow,
                 'ionic -v',
-                'export NVM_DIR="$HOME/.nvm"\n' +
-                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
-                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                null,
                 'You do not have a Ionic version installed on your computer.'
             );
             return resolve(ionicVersion);
@@ -33,9 +31,7 @@ class IonicManager {
             const ionicVersion = await this.childManager.executeCommand(
                 mainWindow,
                 'ionic info --json',
-                'export NVM_DIR="$HOME/.nvm"\n' +
-                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
-                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                null,
                 'When try to get ionic info. Something get wrong!'
             );
             return resolve(ionicVersion);
@@ -48,9 +44,7 @@ class IonicManager {
             const ionicVersion = await this.childManager.executeCommand(
                 mainWindow,
                 'unset npm_config_prefix&&npm install -g @ionic/cli',
-                'export NVM_DIR="$HOME/.nvm"\n' +
-                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
-                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                null,
                 'When try to install ionic. Something get wrong!'
             );
             return resolve(ionicVersion);

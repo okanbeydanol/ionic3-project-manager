@@ -1,34 +1,20 @@
 'use strict';
-const {app, BrowserWindow, ipcMain, nativeTheme, ipcRenderer} = require('electron');
+const { app, BrowserWindow, ipcMain, nativeTheme, ipcRenderer, remote } = require('electron');
 const path = require('path');
-const {dialog} = require('electron');
-const {writeFileSync} = require('fs');
 const request = require('request');
-const {homedir} = require('os');
-const {join} = require('path');
-const {FsManager} = require('../functions/fs-manager');
-const {AndroidCleaner} = require('../functions/android-cleaner');
-const {exec} = require("child_process");
-const {StartWatcher} = require("../functions/refresher");
-const {ZshrcManager} = require("../functions/zshrc-manager");
+const { FsManager } = require('../functions/fs-manager');
+const { AndroidCleaner } = require('../functions/android-cleaner');
+const { ZshrcManager } = require('../functions/zshrc-manager');
+const { BrewManager } = require('../functions/brew-manager');
+const { JavaManager } = require('../functions/java-manager');
 const config_path = path.join(__dirname, '../config');
+const { globalFunctions } = require('../functions/global-shared');
+const { PasswordManager } = require('../functions/password-manager');
+
 (async () => {
-    const consoleType = {
-        command: "command",
-        output: "output",
-        error: "error",
-        info: "info"
-    }
-    const config = await new FsManager().readFile(config_path + '/settings.json', {
-        encoding: 'utf8',
-        flag: 'r',
-        signal: null
-    }).then((d) => {
-        return JSON.parse(d.data);
-    });
-    console.log('%c config', 'background: #222; color: #bada55', config);
-    const folders = config.folders;
     let mainWindow = null;
+    let settingsWindow = null;
+    let deployWindow = null;
     let dragDropWindow = null;
     let currentBranch = 'master';
     let github_project_url = null;
@@ -36,74 +22,68 @@ const config_path = path.join(__dirname, '../config');
     let ios_version = null;
     let android_build_number = null;
     let ios_build_number = null;
-
+    let windowData = null;
     const createWindow = async () => {
-        if (config.project_path) {
-            const d = await get_all_data();
+        const project_path = await globalFunctions.getProjectPath;
+        console.log('%c project_path', 'background: #222; color: #bada55', project_path);
+        if (project_path) {
+            const d = await openMainWindow();
             if (!d.data) {
                 await openDragDropWindow();
             } else {
-                config.currentPath = config.project_path;
-                const write = await new FsManager().writeFile(config_path + '/settings.json', JSON.stringify(config));
-                if (write.error) {
-                    return write;
-                }
+                globalFunctions.setCurrentPath = project_path;
             }
         } else {
             await openDragDropWindow();
         }
     };
-
+    console.log('%c remote', 'background: #222; color: #bada55', remote);
     const startHandle = async () => {
         ipcMain.handle('projectDetail:startRead', async (_event, value) => {
-            config.project_path = value;
-            config.currentPath = config.project_path;
-            const write = await new FsManager().writeFile(config_path + '/settings.json', JSON.stringify(config));
-            if (write.error) {
-                return write;
-            }
-            return await get_all_data();
+            globalFunctions.setCurrentPath = await globalFunctions.getProjectPath;
+            return await openMainWindow();
         });
         ipcMain.handle('projectDetail:startAndroidCleaner', async (_event, value) => {
-            console.log('%c value', 'background: #222; color: #bada55', value);
-
-            const androidCleaner = await new AndroidCleaner().startAndroidCleaner(value, mainWindow);
+            await cleanerStarted(settingsWindow);
+            const androidCleaner = await new AndroidCleaner().startAndroidCleaner(value, mainWindow, (data) => {
+                console.log('%c startAndroidCleanerCallbackData', 'background: #222; color: #bada55', data);
+                sendEnvironmentChange(settingsWindow, data);
+            });
             console.log('%c androidCleaner', 'background: #222; color: #bada55', androidCleaner);
+
+            return true;
         });
         ipcMain.handle('projectDetail:currentPath', async (_event) => {
-            const a = await new ZshrcManager().getExports();
-            console.log('%c a', 'background: #222; color: #bada55', a);
-            return config.currentPath;
+            const config = await globalFunctions.getConfig;
+            return config.current_path;
         });
-
-    };
-    const openDragDropWindow = async () => {
-        dragDropWindow = new BrowserWindow({
-            width: 526,
-            height: 416,
-            webPreferences: {
-                devTools: true,
-                disableHtmlFullscreenWindowResize: true,
-                nodeIntegration: true,
-                enableRemoteModule: true,
-                webSecurity: true,
-                experimentalFeatures: false,
-                contextIsolation: true,
-                preload: path.resolve(app.getAppPath(), 'app/src/preload/preload.js')
+        ipcMain.handle('projectDetail:startReadDetailData', async (_event) => {
+            if (windowData && !windowData.error) {
+                return windowData.data;
             }
+            return false;
         });
-        // Open the DevTools.
-        await dragDropWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/dragDrop/index.html'));
-        dragDropWindow.webContents.openDevTools({mode: 'detach', activate: true});
+        ipcMain.handle('projectDetail:installBrewSettings', async (_event, value) => {
+            console.log('%c sadfasdfasd', 'background: #222; color: #bada55', value);
+            const installBrew = await new BrewManager().installBrewSettings(mainWindow, value);
+            console.log('%c installBrew', 'background: #222; color: #bada55', installBrew);
+            return true;
+        });
+        ipcMain.handle('projectDetail:installJavaWithAzulSettings', async (_event, value) => {
+            console.log('%c sadfasdfasd2', 'background: #222; color: #bada55', value);
+            const installJava = await new JavaManager().installJavaWithAzulSettings(mainWindow, value);
+            console.log('%c installJava', 'background: #222; color: #bada55', installJava);
+            return true;
+        });
+        ipcMain.handle('projectDetail:setPasswordDialog', async (_event, value) => {
+            const setPasswordDialog = await new PasswordManager().setNewPassword(mainWindow, value);
+            console.log('%c setPasswordDialog', 'background: #222; color: #bada55', setPasswordDialog);
+            return setPasswordDialog;
+        });
     };
 
-    const get_all_data = async () => {
-        const configXml = await readConfigXml();
-        if (!configXml.data) {
-            return configXml;
-        }
-
-        const access_token = config.access_token;
+    const fetch_data = async () => {
+        const access_token = await globalFunctions.getAccessToken;
         if (access_token === '') {
             return {
                 data: null,
@@ -133,10 +113,22 @@ const config_path = path.join(__dirname, '../config');
             return workflows;
         }
 
-        dragDropWindow && dragDropWindow.close();
-        mainWindow = new BrowserWindow({
-            width: 780,
-            height: 1120,
+        return {
+            data: {
+                userInfo: userInfo.data,
+                branches: branches.data,
+                workflows: workflows.data,
+                gitConfig: gitConfig.data,
+                owner: owner,
+                repo: repo
+            },
+            error: false
+        };
+    };
+    const openDragDropWindow = async () => {
+        dragDropWindow = new BrowserWindow({
+            width: 526,
+            height: 416,
             webPreferences: {
                 devTools: true,
                 disableHtmlFullscreenWindowResize: true,
@@ -149,42 +141,118 @@ const config_path = path.join(__dirname, '../config');
             }
         });
         // Open the DevTools.
+        await dragDropWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/dragDrop/index.html'));
+        dragDropWindow.webContents.openDevTools({ mode: 'detach', activate: true });
+    };
+    const openMainWindow = async () => {
+        const configXml = await readConfigXml();
+        if (!configXml.data) {
+            return configXml;
+        }
+        windowData = await fetch_data();
+        dragDropWindow && dragDropWindow.close();
+        mainWindow = new BrowserWindow({
+            width: 780,
+            height: 840,
+            webPreferences: {
+                devTools: true,
+                disableHtmlFullscreenWindowResize: true,
+                nodeIntegration: true,
+                enableRemoteModule: true,
+                webSecurity: true,
+                experimentalFeatures: false,
+                contextIsolation: true,
+                preload: path.resolve(app.getAppPath(), 'app/src/preload/preload.js'),
+                show: false
+            }
+        });
+        // Open the DevTools.
         await mainWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/projectDetail/index.html'));
-        await mainWindow.webContents.openDevTools({mode: 'detach', activate: true});
-        await sendListen(mainWindow, '-------- AndroidManifest.xml Start WATCH! ----------', consoleType.info);
-        new StartWatcher(async (type, path) => {
-            const requestRegex = /(\/*<uses-permission android:name="android\.permission\.REQUEST_INSTALL_PACKAGES" \/>\/*)/;
-            const cameraRegex = /(\/*<uses-permission android:name="android\.permission\.CAMERA" \/>\/*)/;
-            let fileContent = await new FsManager().readFile(path, {
-                encoding: 'utf8',
-                flag: 'r',
-                signal: null
-            })
-            const requestRegexMatch = requestRegex.exec(fileContent.data);
-            if (requestRegexMatch) {
-                await sendListen(mainWindow, '-------- AndroidManifest REMOVING CAMERA PERMISSION ----------', consoleType.info);
-                fileContent.data = fileContent.data.replace(requestRegex, '');
-                await new FsManager().writeFile(path, fileContent.data);
-            }
-            const cameraRegexMatch = cameraRegex.exec(fileContent.data);
-            if (cameraRegexMatch) {
-                await sendListen(mainWindow, '-------- AndroidManifest REMOVING REQUEST_INSTALL_PACKAGES PERMISSION  ----------', consoleType.info);
-                fileContent.data = fileContent.data.replace(cameraRegex, '');
-                await new FsManager().writeFile(path, fileContent.data);
-            }
-        }, [ config.project_path + '/platforms/android/app/src/main/AndroidManifest.xml' ], [ 'change' ]);
-        return {
-            data: {
-                userInfo: userInfo.data,
-                branches: branches.data,
-                workflows: workflows.data,
-                gitConfig: gitConfig.data,
-                owner: owner,
-                repo: repo
+        await mainWindow.webContents.openDevTools({ mode: 'detach', activate: true });
+        mainWindow.show();
+        /*   mainWindow.on('focus', () => {
+               settingsWindow && settingsWindow.focus();
+               deployWindow && deployWindow.focus();
+               mainWindow.focus();
+           });*/
+        mainWindow.on('close', () => {
+            console.log('%c close', 'background: #222; color: #bada55');
+            app.exit();
+        });
+        const mainWindowXY = mainWindow.getPosition();
+        const mainWindowGetSize = mainWindow.getSize();
+
+        settingsWindow = new BrowserWindow({
+            width: 420,
+            height: 590,
+            webPreferences: {
+                devTools: true,
+                disableHtmlFullscreenWindowResize: true,
+                nodeIntegration: true,
+                enableRemoteModule: true,
+                webSecurity: true,
+                experimentalFeatures: false,
+                contextIsolation: true,
+                preload: path.resolve(app.getAppPath(), 'app/src/preload/preload.js'),
+                show: false
             },
+            x: mainWindowXY[0] + mainWindowGetSize[0] + 20,
+            y: mainWindowXY[1]
+        });
+        // Open the DevTools.
+        await settingsWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/generalSettings/index.html'));
+        await settingsWindow.webContents.openDevTools({ mode: 'detach' });
+        settingsWindow.show();
+        const settingsWindowXY = settingsWindow.getPosition();
+        const settingsWindowGetSize = settingsWindow.getSize();
+        deployWindow = new BrowserWindow({
+            width: 300,
+            height: 300,
+            webPreferences: {
+                devTools: true,
+                disableHtmlFullscreenWindowResize: true,
+                nodeIntegration: true,
+                enableRemoteModule: true,
+                webSecurity: true,
+                experimentalFeatures: false,
+                contextIsolation: true,
+                preload: path.resolve(app.getAppPath(), 'app/src/preload/preload.js'),
+                show: false
+            },
+            x: mainWindowXY[0] + mainWindowGetSize[0] + 20,
+            y: settingsWindowXY[1] + settingsWindowGetSize[1] + 20
+        });
+        // Open the DevTools.
+        await deployWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/deployForTest/index.html'));
+        await deployWindow.webContents.openDevTools({ mode: 'detach' });
+        deployWindow.show();
+        /*      await sendListen(mainWindow, '-------- AndroidManifest.xml Start WATCH! ----------', consoleType.info);
+                new StartWatcher(async (type, path) => {
+                    const requestRegex = /(\/!*<uses-permission android:name="android\.permission\.REQUEST_INSTALL_PACKAGES" \/>\/!*)/;
+                    const cameraRegex = /(\/!*<uses-permission android:name="android\.permission\.CAMERA" \/>\/!*)/;
+                    let fileContent = await new FsManager().readFile(path, {
+                        encoding: 'utf8',
+                        flag: 'r',
+                        signal: null
+                    })
+                    const requestRegexMatch = requestRegex.exec(fileContent.data);
+                    if (requestRegexMatch) {
+                        await sendListen(mainWindow, '-------- AndroidManifest REMOVING CAMERA PERMISSION ----------', consoleType.info);
+                        fileContent.data = fileContent.data.replace(requestRegex, '');
+                        await new FsManager().writeFile(path, fileContent.data);
+                    }
+                    const cameraRegexMatch = cameraRegex.exec(fileContent.data);
+                    if (cameraRegexMatch) {
+                        await sendListen(mainWindow, '-------- AndroidManifest REMOVING REQUEST_INSTALL_PACKAGES PERMISSION  ----------', consoleType.info);
+                        fileContent.data = fileContent.data.replace(cameraRegex, '');
+                        await new FsManager().writeFile(path, fileContent.data);
+                    }
+                }, [ config.project_path + '/platforms/android/app/src/main/AndroidManifest.xml' ], [ 'change' ]);*/
+        return {
+            data: true,
             error: false
         };
-    }
+    };
     const get_workflows = async (owner, repo_name, access_token) => {
         return new Promise(
             async (resolve) => {
@@ -212,7 +280,6 @@ const config_path = path.join(__dirname, '../config');
             }
         );
     };
-
     const get_branches = async (owner, repo_name, access_token) => {
         return new Promise(
             async (resolve) => {
@@ -230,11 +297,10 @@ const config_path = path.join(__dirname, '../config');
                         i = -1;
                     }
                 }
-                return resolve({data: branchesCounter, error: false});
+                return resolve({ data: branchesCounter, error: false });
             }
         );
     };
-
     const fetch_branch = async (owner, repo_name, access_token, i) => {
         return new Promise(
             async (resolve) => {
@@ -254,17 +320,19 @@ const config_path = path.join(__dirname, '../config');
                         message: error.message,
                         road: 'ApplicationStart/main.js:fetch_branch:request'
                     });
-                    return resolve({data: JSON.parse(response.body), error: false});
+                    return resolve({ data: JSON.parse(response.body), error: false });
                 });
 
             }
         );
     };
-
     const get_git_config = async () => {
         return new Promise(
             async (resolve) => {
-                const currentBranchFile = await new FsManager().readFile(config.project_path + '/' + folders.GIT_FOLDER + '/' + folders.CURREN_BRANCH_FILE, {
+                const folders = await globalFunctions.getFolders;
+                const project_path = await globalFunctions.getProjectPath;
+
+                const currentBranchFile = await new FsManager().readFile(project_path + '/' + folders.GIT_FOLDER + '/' + folders.GIT_CURRENT_BRANCH_FILE, {
                     encoding: 'utf8',
                     flag: 'r',
                     signal: null
@@ -274,22 +342,21 @@ const config_path = path.join(__dirname, '../config');
                 } else {
                     return resolve(currentBranchFile);
                 }
-                const gitConfigFile = await new FsManager().readFile(config.project_path + '/' + folders.GIT_FOLDER + '/' + folders.CONFIG_FILE);
-                if (!gitConfigFile.error) {
+                const gitglobalFunctions = await new FsManager().readFile(project_path + '/' + folders.GIT_FOLDER + '/' + folders.GIT_CONFIG_FILE);
+                if (!gitglobalFunctions.error) {
                     const github_url_regex = /(\/*\[remote "origin"]\n	url = \S+\/*)/;
-                    const projectTitleMatch = github_url_regex.exec(gitConfigFile.data);
+                    const projectTitleMatch = github_url_regex.exec(gitglobalFunctions.data);
                     github_project_url = projectTitleMatch[0].split('=')[1].trim();
                 } else {
-                    return resolve(gitConfigFile);
+                    return resolve(gitglobalFunctions);
                 }
                 return resolve({
-                    data: {currentBranch: currentBranch, githubProjectUrl: github_project_url},
+                    data: { currentBranch: currentBranch, githubProjectUrl: github_project_url },
                     error: false
                 });
             }
         );
     };
-
     const get_user_info = async (access_token) => {
         return new Promise(
             (resolve, reject) => {
@@ -309,43 +376,33 @@ const config_path = path.join(__dirname, '../config');
                         message: error.message,
                         road: 'ApplicationStart/main.js:get_user_info:request'
                     });
-                    return resolve({data: JSON.parse(response.body), error: false});
+                    return resolve({ data: JSON.parse(response.body), error: false });
                 });
             }
         );
     };
-
-
-    async function getCurrentPath() {
-        return new Promise((resolve) => {
-            exec('pwd', {encoding: 'utf8'}, (error, stdout, stderr) => {
-                return resolve({
-                    data: stdout.trim(),
-                    error: false,
-                    type: 'stdout:end',
-                    road: 'child_process.js:execCommand:exec'
-                });
-            });
-        });
-    }
-
-
-    const sendListen = async (mainWindow, text, type = null, error = false) => {
+    const sendEnvironmentChange = async (window, data) => {
         return new Promise(async (resolve) => {
-            mainWindow.webContents.send('command:listen', {
-                data: text,
-                type: type,
-                error: error
+            window.webContents.send('projectSettings:environmentCheckData', {
+                data: data.type,
+                type: data.data
             });
             resolve(true);
         });
-    }
+    };
+    const cleanerStarted = async (window) => {
+        return new Promise(async (resolve) => {
+            window.webContents.send('projectSettings:cleanerStarted', null);
+            resolve(true);
+        });
+    };
     const readConfigXml = async () => {
-        const configExist = await new FsManager().pathExist(config.project_path + '/config.xml');
+        const project_path = await globalFunctions.getProjectPath;
+        const configExist = await new FsManager().pathExist(project_path + '/config.xml');
         if (!configExist.data) {
             return configExist;
         }
-        const configXml = await new FsManager().readFile(config.project_path + '/config.xml', {
+        const configXml = await new FsManager().readFile(project_path + '/config.xml', {
             encoding: 'utf8',
             flag: 'r',
             signal: null
@@ -376,7 +433,7 @@ const config_path = path.join(__dirname, '../config');
         return {
             error: false,
             data: {
-                path: config.project_path,
+                path: project_path,
                 androidVersion: android_version,
                 iosVersion: ios_version,
                 androidBuildNumber: android_build_number,
@@ -396,9 +453,6 @@ const config_path = path.join(__dirname, '../config');
         });
 
     });
-    app.on('activate-with-no-open-windows', function () {
-        mainWindow.show();
-    });
     app.on('window-all-closed', () => {
         if (process.platform !== 'darwin') {
             app.quit();
@@ -406,5 +460,5 @@ const config_path = path.join(__dirname, '../config');
     });
 
 })().catch((err) => {
-    console.log('%c err', 'background: #222; color: #bada55', err);
+    console.log('%c MAIN ERROR!!!!!!', 'background: #222; color: #bada55', err);
 });

@@ -1,21 +1,21 @@
-const {ChildProcess} = require('./child_process');
+const { ChildProcess } = require('./child_process');
 const os = require('os');
-const {getOSInfo} = require('get-os-info');
-const {FsManager} = require('./fs-manager');
+const { getOSInfo } = require('get-os-info');
+const { FsManager } = require('./fs-manager');
 const path = require('path');
 
 class CordovaManager {
     config_path = path.join(__dirname, '../config');
-    system_type = {mac: false, windows: false, linux: false};
-    system_info = {name: null, version: null};
+    system_type = { mac: false, windows: false, linux: false };
+    system_info = { name: null, version: null };
     osPlatform = os.platform();
     childManager = new ChildProcess();
     consoleType = {
-        command: "command",
-        output: "output",
-        error: "error",
-        info: "info"
-    }
+        command: 'command',
+        output: 'output',
+        error: 'error',
+        info: 'info'
+    };
 
     constructor() {
         if (this.osPlatform === 'win32' || process.env.OSTYPE === 'cygwin' || process.env.OSTYPE === 'msys') {
@@ -35,11 +35,12 @@ class CordovaManager {
             const cordovaVersion = await this.childManager.executeCommand(
                 mainWindow,
                 'cordova -v',
-                'export NVM_DIR="$HOME/.nvm"\n' +
-                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
-                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                null,
                 'You do not have a Cordova version installed on your computer.'
             );
+            if (!cordovaVersion.error) {
+                cordovaVersion.data = cordovaVersion.data.trim().split(' ')[0].trim();
+            }
             return resolve(cordovaVersion);
         });
     }
@@ -50,9 +51,7 @@ class CordovaManager {
             const installCordovaRes = await this.childManager.executeCommand(
                 mainWindow,
                 'unset npm_config_prefix&&npm install -g cordova-res --unsafe-perm=true',
-                'export NVM_DIR="$HOME/.nvm"\n' +
-                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
-                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                null,
                 'When try to install cordova res. Something get wrong!'
             );
             return resolve(installCordovaRes);
@@ -65,9 +64,7 @@ class CordovaManager {
             const installCordova = await this.childManager.executeCommand(
                 mainWindow,
                 'unset npm_config_prefix&&npm install -g cordova@' + cordova_version + ' --unsafe-perm=true',
-                'export NVM_DIR="$HOME/.nvm"\n' +
-                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
-                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                null,
                 'When try to install cordova. Something get wrong!'
             );
             return resolve(installCordova);
@@ -80,9 +77,7 @@ class CordovaManager {
             const installCordova = await this.childManager.executeCommand(
                 mainWindow,
                 'cordova-res -v',
-                'export NVM_DIR="$HOME/.nvm"\n' +
-                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
-                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                null,
                 'You do not have a Cordova Res version installed on your computer.'
             );
             return resolve(installCordova);
@@ -95,9 +90,7 @@ class CordovaManager {
             const getNpmPath = await this.childManager.executeCommand(
                 mainWindow,
                 'which npm',
-                'export NVM_DIR="$HOME/.nvm"\n' +
-                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
-                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                null,
                 'When try to get npm path folder. Something get wrong!'
             );
             return resolve(getNpmPath);
@@ -131,7 +124,7 @@ class CordovaManager {
                 this.config = JSON.parse(settings.data);
                 macOsReleasePath = this.config.project_path + '/node_modules/macos-release/index.js';
             }
-            let indexJs = await new FsManager().readFile(macOsReleasePath, {encoding: 'utf8'});
+            let indexJs = await new FsManager().readFile(macOsReleasePath, { encoding: 'utf8' });
             if (indexJs.error) {
                 return resolve(indexJs);
             }
@@ -153,13 +146,13 @@ class CordovaManager {
                         const cordovaVersion = await this.getCordovaVersion(mainWindow);
                         return resolve(cordovaVersion);
                     } else {
-                        return resolve({error: true, data: null, message: 'No data to be corrected2!'});
+                        return resolve({ error: true, data: null, message: 'No data to be corrected2!' });
                     }
                 } else {
-                    return resolve({error: true, data: null, message: 'No data to be corrected3!'});
+                    return resolve({ error: true, data: null, message: 'No data to be corrected3!' });
                 }
             } else {
-                return resolve({error: true, data: null, message: 'No data to be corrected4!'});
+                return resolve({ error: true, data: null, message: 'No data to be corrected4!' });
             }
         });
     }
@@ -177,4 +170,4 @@ class CordovaManager {
     }
 }
 
-module.exports = {CordovaManager};
+module.exports = { CordovaManager };

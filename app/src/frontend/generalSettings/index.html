@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Settings</title>
+    <meta
+        content="default-src * self blob: data: gap:; style-src * self 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * self 'unsafe-inline' blob: data: gap:; connect-src self * 'unsafe-inline' blob: data: gap:; frame-src * self blob: data: gap:;"
+        http-equiv="Content-Security-Policy">
+    <link href="./styles.css" rel="stylesheet" type="text/css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <script
+        crossorigin="anonymous"
+        integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU="
+        src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <div class="extra-container">
+        <div class="select-wrapper">
+            <div class="server-select">
+                <label for="server">Server</label>
+                <select id="server" name="server" style="width: 100%">
+                    <option value="dev">Development</option>
+                    <option value="stg">Staging</option>
+                    <option value="prod">Production</option>
+                </select>
+            </div>
+            <div class="branches-select">
+                <label for="branches">Branches</label>
+                <select id="branches" name="branches">
+                    <option value="0">Please Choose a branch.</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="version-container">
+            <label for="xcode-version">XCode</label>
+            <input class="version-input" id="xcode-version" placeholder="Xcode Version" type="text">
+            <img src="../../../assets/download.png"/>
+            <div class="loader-container --hidden">
+                <div class="loader"></div>
+            </div>
+        </div>
+        <div class="version-container">
+            <label for="brew-version">Brew</label>
+            <input class="version-input" id="brew-version" placeholder="Brew Version" type="text">
+            <img src="../../../assets/download.png"/>
+            <div class="loader-container --hidden">
+                <div class="loader"></div>
+            </div>
+        </div>
+        <div class="version-container">
+            <label for="java-version">Java</label>
+            <input class="version-input" id="java-version" placeholder="Java Version" type="text">
+            <img src="../../../assets/download.png"/>
+            <div class="loader-container --hidden">
+                <div class="loader"></div>
+            </div>
+        </div>
+        <div class="version-container">
+            <label for="sdk-version">Sdk</label>
+            <input class="version-input" id="sdk-version" placeholder="Android Sdk Version" type="text">
+            <img src="../../../assets/download.png"/>
+            <div class="loader-container --hidden">
+                <div class="loader"></div>
+            </div>
+        </div>
+        <div class="version-container">
+            <label for="git-version">Git</label>
+            <input class="version-input" id="git-version" placeholder="Git Version" type="text">
+            <img src="../../../assets/download.png"/>
+            <div class="loader-container --hidden">
+                <div class="loader"></div>
+            </div>
+        </div>
+        <div class="version-container">
+            <label for="node-version">Node</label>
+            <input class="version-input" id="node-version" placeholder="Node Version" type="text">
+            <img src="../../../assets/download.png"/>
+            <div class="loader-container --hidden">
+                <div class="loader"></div>
+            </div>
+        </div>
+        <div class="version-container">
+            <label for="node-version">Gradle</label>
+            <input class="version-input" id="gradle-version" placeholder="Gradle Version" type="text">
+            <img src="../../../assets/download.png"/>
+            <div class="loader-container --hidden">
+                <div class="loader"></div>
+            </div>
+        </div>
+        <div class="version-container">
+            <label for="ionic-version">Ionic</label>
+            <input class="version-input" id="ionic-version" placeholder="Ionic Version" type="text">
+            <img src="../../../assets/download.png"/>
+            <div class="loader-container --hidden">
+                <div class="loader"></div>
+            </div>
+        </div>
+        <div class="version-container">
+            <label for="cordova-version">Cordova</label>
+            <input class="version-input" id="cordova-version" placeholder="Cordova Version" type="text">
+            <img src="../../../assets/download.png"/>
+            <div class="loader-container --hidden">
+                <div class="loader"></div>
+            </div>
+        </div>
+        <div class="version-container">
+            <label for="cordova-res-version">Cordova Res</label>
+            <input class="version-input" id="cordova-res-version" placeholder="Cordova Res Version" type="text">
+            <img src="../../../assets/download.png"/>
+            <div class="loader-container --hidden">
+                <div class="loader"></div>
+            </div>
+        </div>
+        <div class="version-container">
+            <label for="native-run-version">Native Run</label>
+            <input class="version-input" id="native-run-version" placeholder="Native Run Version" type="text">
+            <img src="../../../assets/download.png"/>
+            <div class="loader-container --hidden">
+                <div class="loader"></div>
+            </div>
+        </div>
+        <div class="version-container">
+            <label for="ios-deploy-version">Ios Deploy</label>
+            <input class="version-input" id="ios-deploy-version" placeholder="Ios Deploy Version" type="text">
+            <img src="../../../assets/download.png"/>
+            <div class="loader-container --hidden">
+                <div class="loader"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+<script src="../../renderer/renderer-general-settings.js"></script>
+</html>

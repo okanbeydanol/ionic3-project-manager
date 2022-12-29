@@ -1,15 +1,15 @@
-const {ChildProcess} = require('./child_process');
-const {BrewManager} = require('./brew-manager');
+const { ChildProcess } = require('./child_process');
+const { BrewManager } = require('./brew-manager');
 
 class NodeManager {
     BrewManager = new BrewManager();
     childManager = new ChildProcess();
     consoleType = {
-        command: "command",
-        output: "output",
-        error: "error",
-        info: "info"
-    }
+        command: 'command',
+        output: 'output',
+        error: 'error',
+        info: 'info'
+    };
 
     constructor() {
     }
@@ -20,11 +20,12 @@ class NodeManager {
             const nodeVersion = await this.childManager.executeCommand(
                 mainWindow,
                 'node -v',
-                'export NVM_DIR="$HOME/.nvm"\n' +
-                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
-                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                null,
                 'You do not have a Node version installed on your computer.'
             );
+            if (!nodeVersion.error) {
+                nodeVersion.data = nodeVersion.data.trim().replace('v', '');
+            }
             return resolve(nodeVersion);
         });
     }
@@ -35,9 +36,7 @@ class NodeManager {
             const nvmVersion = await this.childManager.executeCommand(
                 mainWindow,
                 'nvm -v',
-                'export NVM_DIR="$HOME/.nvm"\n' +
-                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
-                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                null,
                 'You do not have a NVM version installed on your computer.'
             );
             return resolve(nvmVersion);
@@ -46,23 +45,10 @@ class NodeManager {
 
     async installNvm(mainWindow) {
         return new Promise(async (resolve) => {
-            await this.sendListen(mainWindow, 'Trying to install NVM!', this.consoleType.info);
-            let wgetVersion = await this.wgetVersion(mainWindow);
-            if (wgetVersion.error) {
-                const installWgetWithBrew = await this.installWgetWithBrew(mainWindow);
-                if (installWgetWithBrew.error) {
-                    return resolve(installWgetWithBrew);
-                }
-
-                wgetVersion = await this.wgetVersion(mainWindow);
-                if (wgetVersion.error) {
-                    return resolve(wgetVersion);
-                }
-            }
             await this.sendListen(mainWindow, 'Nvm is installing!', this.consoleType.info);
             const installNvm = await this.childManager.executeCommand(
                 mainWindow,
-                'wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash',
+                'curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.6/install.sh | bash',
                 null,
                 'When try to install Nvm. Something get wrong!'
             );
@@ -70,53 +56,13 @@ class NodeManager {
         });
     }
 
-    async installWgetWithBrew(mainWindow) {
-        return new Promise(async (resolve) => {
-            let brewVersion = await this.BrewManager.getBrewVersion(mainWindow);
-            if (brewVersion.error) {
-                const installBrew = await this.BrewManager.installBrew(mainWindow)
-                if (installBrew.error) {
-                    return resolve(installBrew);
-                }
-                brewVersion = await this.BrewManager.getBrewVersion(mainWindow);
-                if (brewVersion.error) {
-                    return resolve(installBrew);
-                }
-            }
-            await this.sendListen(mainWindow, 'Wget is installing!', this.consoleType.info);
-            const installWget = await this.childManager.executeCommand(
-                mainWindow,
-                'brew reinstall wget',
-                'eval "$(~/homebrew/bin/brew shellenv)"',
-                'When try to install Wget with Homebrew. Something get wrong!'
-            );
-            return resolve(installWget);
-        });
-    }
-
-    async wgetVersion(mainWindow) {
-        return new Promise(async (resolve) => {
-            await this.sendListen(mainWindow, 'Checking Wget version!', this.consoleType.info);
-            const wgetVersion = await this.childManager.executeCommand(
-                mainWindow,
-                'wget -V',
-                'eval "$(~/homebrew/bin/brew shellenv)"',
-                'You do not have a Wget version installed on your computer.'
-            );
-            return resolve(wgetVersion);
-        });
-    }
-
-
     async installNode(mainWindow, node_version) {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Node is installing!', this.consoleType.info);
             const installNode = await this.childManager.executeCommand(
                 mainWindow,
                 'nvm install  --default ' + node_version,// + '&&nvm use ' + node_version + '&&nvm alias default ' + node_version
-                'export NVM_DIR="$HOME/.nvm"\n' +
-                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
-                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                null,
                 'When try to install Node. Something get wrong!'
             );
             return resolve(installNode);
@@ -129,9 +75,9 @@ class NodeManager {
             await this.sendListen(mainWindow, 'Nvm is exporting!', this.consoleType.info);
             const exportNvmDir = await this.childManager.executeCommand(
                 mainWindow,
-                `echo 'export NVM_DIR="$HOME/.nvm"\n' +
-                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
-                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"' >> ~/.zprofile`,
+                `echo 'export NVM_DIR="$HOME/.nvm"
+                        [ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"  # This loads nvm
+                        [ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion' >> ~/.zprofile`,
                 null,
                 'When try to export Nvm. Something get wrong!'
             );
@@ -159,9 +105,7 @@ class NodeManager {
             const cacheClearNvm = await this.childManager.executeCommand(
                 mainWindow,
                 'nvm cache clear',
-                'export NVM_DIR="$HOME/.nvm"\n' +
-                '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
-                '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                null,
                 'When try to clear cache. Something get wrong!'
             );
             return resolve(cacheClearNvm);
@@ -225,4 +169,4 @@ class NodeManager {
 }
 
 
-module.exports = {NodeManager};
+module.exports = { NodeManager };

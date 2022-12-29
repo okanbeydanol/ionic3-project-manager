@@ -7,6 +7,12 @@
             content="default-src * self blob: data: gap:; style-src * self 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * self 'unsafe-inline' blob: data: gap:; connect-src self * 'unsafe-inline' blob: data: gap:; frame-src * self blob: data: gap:;"
             http-equiv="Content-Security-Policy">
     <link href="./styles.css" rel="stylesheet" type="text/css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script
+            crossorigin="anonymous"
+            integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU="
+            src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -15,58 +21,63 @@
             <span>Welcome !!!!!</span>
         </div>
         <div class="extra-container">
-            <label for="command-input" id="command-input-label"
-                   style="font-size: 12px;display: block;margin-left: 10px;margin-top: 10px;">~</label>
-            <input id="command-input" type="text" value="npm run cleaning">
+            <div class="terminal-extra-container">
+                <label for="command-input" id="command-input-label"
+                       style="font-size: 12px;display: block;margin-left: 10px;margin-top: 10px;">~</label>
+                <input id="command-input" type="text" value="npm run cleaning">
+            </div>
         </div>
     </div>
     <div class="android-clean-wrapper">
-        <div class="android-clean-title"> Android cleaner
-            <button class="start-cleaner" id="android_cleaner" type="button">Start Cleaner</button>
-        </div>
         <div class="clean-type-container">
-            <div android_node_modules class="clean-type">
+            <div class="clean-type" node_modules>
                 <span>Node Modules</span>
                 <img class="clean-type-img clean-type-img--active" src="../../../assets/check.png" />
             </div>
-            <div android_prepare class="clean-type">
+            <div class="clean-type" prepare>
                 <span>Prepare</span>
                 <img class="clean-type-img clean-type-img--active" src="../../../assets/check.png" />
             </div>
-            <div android_apk class="clean-type">
-                <span>Build APK</span>
-                <img class="clean-type-img clean-type-img--active" src="../../../assets/check.png" />
-            </div>
-            <div android_bundle class="clean-type">
-                <span>Build BUNDLE</span>
-                <img class="clean-type-img clean-type-img--active" src="../../../assets/check.png" />
-            </div>
-        </div>
-    </div>
-    <div class="ios-clean-wrapper">
-        <div class="ios-clean-title"> Ios cleaner
-            <button class="start-cleaner" id="ios_cleaner" type="button">Start Cleaner</button>
-        </div>
-        <div class="clean-type-container">
-            <div class="clean-type" ios_node_modules>
-                <span>Node Modules</span>
-                <img class="clean-type-img clean-type-img--active" src="../../../assets/check.png" />
-            </div>
-            <div class="clean-type" ios_prepare>
-                <span>Prepare</span>
-                <img class="clean-type-img clean-type-img--active" src="../../../assets/check.png" />
-            </div>
-            <div class="clean-type" ios_build>
-                <span>Build</span>
-                <img class="clean-type-img clean-type-img--active" src="../../../assets/check.png" />
-            </div>
-            <div class="clean-type" ios_archive>
-                <span>Archive</span>
-                <img class="clean-type-img clean-type-img--active" src="../../../assets/check.png" />
-            </div>
-        </div>
-    </div>
 
+            <div style="    display: flex;
+    width: 100%;">
+                <div style="    width: 100%;">
+                    <div android_apk class="clean-type">
+                        <span>Build APK</span>
+                        <img class="clean-type-img clean-type-img--active" src="../../../assets/check.png" />
+                    </div>
+                    <div android_bundle class="clean-type">
+                        <span>Build BUNDLE</span>
+                        <img class="clean-type-img clean-type-img--active" src="../../../assets/check.png" />
+                    </div>
+                </div>
+                <div style="    width: 100%;">
+                    <div class="clean-type" ios_build>
+                        <span>Build</span>
+                        <img class="clean-type-img clean-type-img--active" src="../../../assets/check.png" />
+                    </div>
+                    <div class="clean-type" ios_archive>
+                        <span>Archive</span>
+                        <img class="clean-type-img clean-type-img--active" src="../../../assets/check.png" />
+                    </div>
+                </div>
+
+            </div>
+            <div style="    display: flex;">
+                <div class="android-clean-title">
+                    <label style="    text-align: start;
+    margin-bottom: 16px;">Android cleaner</label>
+                    <button class="start-cleaner" id="android_cleaner" type="button">Start Cleaner</button>
+                </div>
+                <div class="ios-clean-title">
+                    <label style="    text-align: center;
+    margin-bottom: 16px;">Ios cleaner</label>
+                    <button class="start-cleaner" id="ios_cleaner" type="button">Start Cleaner</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </div>
 <div class="loader-container" id="loader-container">
     <div class="loader" id="loader"></div>
