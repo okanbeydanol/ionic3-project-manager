@@ -44,7 +44,7 @@ class GitManager {
             await this.sendListen(mainWindow, 'Trying to install Git!', this.consoleType.info);
             const installGit = await this.childManager.executeCommand(
                 mainWindow,
-                'brew install git',
+                'brew reinstall git',
                 null,
                 'When try to install git. Something get wrong!'
             );

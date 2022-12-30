@@ -112,9 +112,7 @@ class IosCleaner {
                 const addCordovaWebview = await this.childManager.executeCommand(
                     mainWindow,
                     'unset npm_config_prefix&&npm install cordova-plugin-ionic-webview',
-                    'export NVM_DIR="$HOME/.nvm"\n' +
-                    '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
-                    '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                    null,
                     'When try to adding webview. Something get wrong!'
                 );
                 if (addCordovaWebview.error) {
@@ -128,9 +126,7 @@ class IosCleaner {
                 const addCordovaNativeWebview = await this.childManager.executeCommand(
                     mainWindow,
                     'unset npm_config_prefix&&npm install @ionic-native/ionic-webview',
-                    'export NVM_DIR="$HOME/.nvm"\n' +
-                    '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"\n' +
-                    '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"',
+                    null,
                     'When try to adding webview. Something get wrong!'
                 );
                 if (addCordovaNativeWebview.error) {

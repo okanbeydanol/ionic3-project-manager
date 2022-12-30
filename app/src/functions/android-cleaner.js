@@ -4,13 +4,11 @@ const { FsManager } = require('./fs-manager');
 const path = require('path');
 const { PackageJsonManager } = require('./package_json_control');
 const { EnvironmentManager } = require('./environment-manager');
-const { PasswordManager } = require('./password-manager');
 const config_path = path.join(__dirname, '../config');
 
 class AndroidCleaner {
     CordovaManager = new CordovaManager();
     childManager = new ChildProcess();
-    passwordManager = new PasswordManager();
     environmentManager = new EnvironmentManager();
     consoleType = {
         command: 'command',
@@ -32,20 +30,20 @@ class AndroidCleaner {
             if (environmentCheck.error) {
                 return resolve(environmentCheck);
             }
-            if (command.includes('node_modules')) {
-                const refreshNodeModules = await this.refresh_only_node_modules(mainWindow);
-                if (refreshNodeModules.error) {
-                    return resolve(refreshNodeModules);
-                }
-                console.log('%c refreshNodeModules', 'background: #222; color: #bada55', refreshNodeModules);
-            }
-            if (command.includes('prepare')) {
-                const refreshAndroid = await this.refresh_only_android(mainWindow);
-                if (refreshAndroid.error) {
-                    return resolve(refreshAndroid);
-                }
-                console.log('%c refreshAndroid', 'background: #222; color: #bada55', refreshAndroid);
-            }
+            /*       if (command.includes('node_modules')) {
+                       const refreshNodeModules = await this.refresh_only_node_modules(mainWindow);
+                       if (refreshNodeModules.error) {
+                           return resolve(refreshNodeModules);
+                       }
+                       console.log('%c refreshNodeModules', 'background: #222; color: #bada55', refreshNodeModules);
+                   }
+                   if (command.includes('prepare')) {
+                       const refreshAndroid = await this.refresh_only_android(mainWindow);
+                       if (refreshAndroid.error) {
+                           return resolve(refreshAndroid);
+                       }
+                       console.log('%c refreshAndroid', 'background: #222; color: #bada55', refreshAndroid);
+                   }*/
         });
     }
 
@@ -218,14 +216,14 @@ class AndroidCleaner {
                 return resolve(editFilesAfter);
             }
             await this.sendListen(mainWindow, '--------AFTER BUILD ANDROID FIXES END----------', this.consoleType.info);
-
-            /*            if (keystore_config.path !== null) {
-                            const cmd_build_apk = cmd_node + ' && ionic cordova build android --prod --release -- -- --keystore="' + keystore + '" --storePassword="' + keystore_config.pass + '" --alias="' + keystore_config.alias + '" --password="' + keystore_config.pass + '" --packageType=apk';
-                            const cmd_build_aab = cmd_node + ' && ionic cordova build android --prod --release -- -- --keystore="' + keystore + '" --storePassword="' + keystore_config.pass + '" --alias="' + keystore_config.alias + '" --password="' + keystore_config.pass + '" --packageType=bundle';
-                            await execute_command(cmd_build_apk, "Build Android APK");
-                            await execute_command(cmd_build_aab, "Build Android AAB");
-                        }*/
-
+            /*
+            if (keystore_config.path !== null) {
+                const cmd_build_apk = cmd_node + ' && ionic cordova build android --prod --release -- -- --keystore="' + keystore + '" --storePassword="' + keystore_config.pass + '" --alias="' + keystore_config.alias + '" --password="' + keystore_config.pass + '" --packageType=apk';
+                const cmd_build_aab = cmd_node + ' && ionic cordova build android --prod --release -- -- --keystore="' + keystore + '" --storePassword="' + keystore_config.pass + '" --alias="' + keystore_config.alias + '" --password="' + keystore_config.pass + '" --packageType=bundle';
+                await execute_command(cmd_build_apk, "Build Android APK");
+                await execute_command(cmd_build_aab, "Build Android AAB");
+            }
+            */
             return resolve({ error: false, data: null });
 
 

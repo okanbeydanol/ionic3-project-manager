@@ -45,7 +45,10 @@ class EnvironmentManager {
         cordovaRes: 'cordovaRes',
         xcode: 'xcode',
         nativeRun: 'nativeRun',
-        iosDeploy: 'iosDeploy'
+        iosDeploy: 'iosDeploy',
+        buildTools: 'buildTools',
+        platformTools: 'platformTools',
+        platformsAndroid: 'platformsAndroid'
     };
 
     constructor() {
@@ -73,7 +76,10 @@ class EnvironmentManager {
             if (handleAndroidSdk.error) {
                 return resolve(handleAndroidSdk);
             }
-            callback({ type: this.environmentType.sdk, data: handleAndroidSdk.data });
+            callback({ type: this.environmentType.sdk, data: handleAndroidSdk.data.sdkmanager });
+            callback({ type: this.environmentType.platformTools, data: handleAndroidSdk.data.platformTools });
+            callback({ type: this.environmentType.platformsAndroid, data: handleAndroidSdk.data.platformsAndroid });
+            callback({ type: this.environmentType.buildTools, data: handleAndroidSdk.data.buildTools });
             const handleGit = await this.handleGit(mainWindow);
             if (handleGit.error) {
                 return resolve(handleGit);
@@ -142,7 +148,9 @@ class EnvironmentManager {
                     return resolve(sdkManagerVersion);
                 }
             }
-            return resolve(sdkManagerVersion);
+            const versions = await this.sdkManager.getAndroidToolsVersions(mainWindow);
+            versions.data.sdkmanager = sdkManagerVersion.data;
+            return resolve({ error: false, data: versions.data });
         });
     }
 
@@ -186,7 +194,6 @@ class EnvironmentManager {
             const split = nodeVersion.data.split('.');
             await this.sendListen(mainWindow, 'Compare project required node version!');
             const compareVersions = this.compareVersions(split, this.NodeMin.split('.'), this.NodeMax.split('.'));
-            console.log('%c compareVersions', 'background: #222; color: #bada55', compareVersions);
             if (+compareVersions === -1) {
                 nodeVersion = await this.NodeManager.changeNodeVersionTo(mainWindow, this.NodeMax);
                 if (nodeVersion.error) {

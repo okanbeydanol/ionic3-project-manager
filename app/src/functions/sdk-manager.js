@@ -23,7 +23,69 @@ class SdkManager {
                 null,
                 'You do not have a sdkmanager version installed on your computer.'
             );
+
             return resolve(javaVersion);
+        });
+    }
+
+
+    async getAndroidToolsVersions(mainWindow) {
+        return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Checking android tools versions!', this.consoleType.info);
+            const androidToolsVersion = await this.childManager.executeCommand(
+                mainWindow,
+                'sdkmanager  --list | awk \'/Installed/{flag=1; next} /Available/{flag=0} flag\'',
+                null,
+                'When try to get Tools versions. Something get wrong!'
+            );
+            console.log('%c androidToolsVersion', 'background: #222; color: #bada55', androidToolsVersion);
+            if (androidToolsVersion.error) {
+                return resolve(androidToolsVersion);
+            }
+            let m;
+            const buildToolsRegex = /(\/*build-tools;\S+\/*)/g;
+            const buildTools = [];
+            while ((m = buildToolsRegex.exec(androidToolsVersion.data)) !== null) {
+                if (m.index === buildToolsRegex.lastIndex) {
+                    buildToolsRegex.lastIndex++;
+                }
+                m.forEach((match) => {
+                    if (match && match.split(';').length > 0 && match.split(';')[1].trim() !== '' && !buildTools.includes(match.split(';')[1].trim())) {
+                        buildTools.push(match.split(';')[1].trim());
+                    }
+                });
+            }
+            console.log('%c buildTools', 'background: #222; color: #bada55', buildTools);
+
+            const platformToolsRegex = /(\/*platform-tools +\| \S+\/*)/g;
+            const platformTools = [];
+            while ((m = platformToolsRegex.exec(androidToolsVersion.data)) !== null) {
+                if (m.index === platformToolsRegex.lastIndex) {
+                    platformToolsRegex.lastIndex++;
+                }
+                m.forEach((match) => {
+                    if (match && match.split('|').length > 0 && match.split('|')[1].trim() !== '' && !platformTools.includes(match.split('|')[1].trim())) {
+                        platformTools.push(match.split('|')[1].trim());
+                    }
+                });
+            }
+            console.log('%c platformTools', 'background: #222; color: #bada55', platformTools);
+            const platformsAndroidRegex = /(\/*platforms;android-\d+\/*)/g;
+            const platformsAndroid = [];
+            while ((m = platformsAndroidRegex.exec(androidToolsVersion.data)) !== null) {
+                if (m.index === platformsAndroidRegex.lastIndex) {
+                    platformsAndroidRegex.lastIndex++;
+                }
+                m.forEach((match) => {
+                    if (match && match.split(';').length > 0 && match.split(';')[1].trim() !== '' && !platformsAndroid.includes(match.split(';')[1].trim())) {
+                        platformsAndroid.push(match.split(';')[1].trim());
+                    }
+                });
+            }
+            console.log('%c platformsAndroid', 'background: #222; color: #bada55', platformsAndroid);
+
+
+            return resolve({ error: false, data: { platformTools, platformsAndroid, buildTools } });
         });
     }
 
@@ -40,10 +102,10 @@ export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/tools/bin
 export PATH=$PATH:$ANDROID_SDK_ROOT/platform-tools
 export PATH=$PATH:$ANDROID_SDK_ROOT/build-tools
 export PATH=$PATH:$ANDROID_SDK_ROOT/build-tools/31.0.0
-export PATH=$PATH:$ANDROID_SDK_ROOT/emulator
-export PATH=$PATH:$ANDROID_SDK_ROOT/tools
-export PATH=$PATH:$ANDROID_SDK_ROOT/tools/bin
-export PATH=$PATH:$ANDROID_SDK_ROOT/platforms/android-21' >> ~/.zprofile`,
+export PATH=$PATH:$ANDROID_SDK_ROOT/build-tools/31.0.0/lib
+export PATH=$PATH:$ANDROID_SDK_ROOT/platforms/android-31
+export PATH=$PATH:$ANDROID_SDK_ROOT/sources/android-31
+export PATH=$PATH:$ANDROID_SDK_ROOT/system-images/android-21' >> ~/.zprofile`,
                 null,
                 'When try to export paths. Something get wrong!'
             );
@@ -62,10 +124,10 @@ export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/tools/bin
 export PATH=$PATH:$ANDROID_SDK_ROOT/platform-tools
 export PATH=$PATH:$ANDROID_SDK_ROOT/build-tools
 export PATH=$PATH:$ANDROID_SDK_ROOT/build-tools/31.0.0
-export PATH=$PATH:$ANDROID_SDK_ROOT/emulator
-export PATH=$PATH:$ANDROID_SDK_ROOT/tools
-export PATH=$PATH:$ANDROID_SDK_ROOT/tools/bin
-export PATH=$PATH:$ANDROID_SDK_ROOT/platforms/android-21' >> ~/.szshrc`,
+export PATH=$PATH:$ANDROID_SDK_ROOT/build-tools/31.0.0/lib
+export PATH=$PATH:$ANDROID_SDK_ROOT/platforms/android-31
+export PATH=$PATH:$ANDROID_SDK_ROOT/sources/android-31
+export PATH=$PATH:$ANDROID_SDK_ROOT/system-images/android-21' >> ~/.szshrc`,
                 null,
                 'When try to export paths. Something get wrong!'
             );
@@ -144,9 +206,6 @@ export PATH=$PATH:$ANDROID_SDK_ROOT/platforms/android-21' >> ~/.szshrc`,
                 return resolve(setSdkVersion);
             }
             const androidSdkManagerVersion = await this.getAndroidSdkVersion(mainWindow);
-            if (androidSdkManagerVersion.error) {
-                return resolve(androidSdkManagerVersion);
-            }
             await this.sendListen(mainWindow, 'Android Sdk is installed!', this.consoleType.info);
             return resolve(androidSdkManagerVersion);
         });

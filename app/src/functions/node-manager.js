@@ -156,7 +156,7 @@ class NodeManager {
         });
     }
 
-    async sendListen(mainWindow, text, error = false, type = null) {
+    async sendListen(mainWindow, text, type = null, error = false) {
         return new Promise(async (resolve) => {
             mainWindow.webContents.send('command:listen', {
                 data: text,

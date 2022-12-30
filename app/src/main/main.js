@@ -23,6 +23,7 @@ const { PasswordManager } = require('../functions/password-manager');
     let android_build_number = null;
     let ios_build_number = null;
     let windowData = null;
+    let configData = null;
     const createWindow = async () => {
         const project_path = await globalFunctions.getProjectPath;
         console.log('%c project_path', 'background: #222; color: #bada55', project_path);
@@ -58,8 +59,8 @@ const { PasswordManager } = require('../functions/password-manager');
             return config.current_path;
         });
         ipcMain.handle('projectDetail:startReadDetailData', async (_event) => {
-            if (windowData && !windowData.error) {
-                return windowData.data;
+            if (windowData && !windowData.error && configData && !windowData.error) {
+                return { windowData: windowData.data, configData: configData.data };
             }
             return false;
         });
@@ -145,9 +146,9 @@ const { PasswordManager } = require('../functions/password-manager');
         dragDropWindow.webContents.openDevTools({ mode: 'detach', activate: true });
     };
     const openMainWindow = async () => {
-        const configXml = await readConfigXml();
-        if (!configXml.data) {
-            return configXml;
+        configData = await readConfigXml();
+        if (!configData.data) {
+            return configData;
         }
         windowData = await fetch_data();
         dragDropWindow && dragDropWindow.close();
@@ -183,8 +184,8 @@ const { PasswordManager } = require('../functions/password-manager');
         const mainWindowGetSize = mainWindow.getSize();
 
         settingsWindow = new BrowserWindow({
-            width: 420,
-            height: 590,
+            width: 540,
+            height: 840,
             webPreferences: {
                 devTools: true,
                 disableHtmlFullscreenWindowResize: true,
@@ -203,29 +204,29 @@ const { PasswordManager } = require('../functions/password-manager');
         await settingsWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/generalSettings/index.html'));
         await settingsWindow.webContents.openDevTools({ mode: 'detach' });
         settingsWindow.show();
-        const settingsWindowXY = settingsWindow.getPosition();
-        const settingsWindowGetSize = settingsWindow.getSize();
-        deployWindow = new BrowserWindow({
-            width: 300,
-            height: 300,
-            webPreferences: {
-                devTools: true,
-                disableHtmlFullscreenWindowResize: true,
-                nodeIntegration: true,
-                enableRemoteModule: true,
-                webSecurity: true,
-                experimentalFeatures: false,
-                contextIsolation: true,
-                preload: path.resolve(app.getAppPath(), 'app/src/preload/preload.js'),
-                show: false
-            },
-            x: mainWindowXY[0] + mainWindowGetSize[0] + 20,
-            y: settingsWindowXY[1] + settingsWindowGetSize[1] + 20
-        });
-        // Open the DevTools.
-        await deployWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/deployForTest/index.html'));
-        await deployWindow.webContents.openDevTools({ mode: 'detach' });
-        deployWindow.show();
+        /*  const settingsWindowXY = settingsWindow.getPosition();
+          const settingsWindowGetSize = settingsWindow.getSize();
+          deployWindow = new BrowserWindow({
+              width: 300,
+              height: 300,
+              webPreferences: {
+                  devTools: true,
+                  disableHtmlFullscreenWindowResize: true,
+                  nodeIntegration: true,
+                  enableRemoteModule: true,
+                  webSecurity: true,
+                  experimentalFeatures: false,
+                  contextIsolation: true,
+                  preload: path.resolve(app.getAppPath(), 'app/src/preload/preload.js'),
+                  show: false
+              },
+              x: mainWindowXY[0] + mainWindowGetSize[0] + 20,
+              y: settingsWindowXY[1] + settingsWindowGetSize[1] + 20
+          });
+          // Open the DevTools.
+          await deployWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/deployForTest/index.html'));
+          await deployWindow.webContents.openDevTools({ mode: 'detach' });
+          deployWindow.show();*/
         /*      await sendListen(mainWindow, '-------- AndroidManifest.xml Start WATCH! ----------', consoleType.info);
                 new StartWatcher(async (type, path) => {
                     const requestRegex = /(\/!*<uses-permission android:name="android\.permission\.REQUEST_INSTALL_PACKAGES" \/>\/!*)/;

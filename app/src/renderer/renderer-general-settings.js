@@ -10,7 +10,10 @@ const environmentType = {
     cordovaRes: 'cordovaRes',
     xcode: 'xcode',
     nativeRun: 'nativeRun',
-    iosDeploy: 'iosDeploy'
+    iosDeploy: 'iosDeploy',
+    buildTools: 'buildTools',
+    platformTools: 'platformTools',
+    platformsAndroid: 'platformsAndroid'
 };
 
 const brewVersionInput = document.getElementById('brew-version');
@@ -25,21 +28,34 @@ const cordovaResVersionInput = document.getElementById('cordova-res-version');
 const xcodeVersionInput = document.getElementById('xcode-version');
 const nativeRunVersionInput = document.getElementById('native-run-version');
 const iosDeployVersionInput = document.getElementById('ios-deploy-version');
+const buildToolsVersionInput = document.getElementById('build-tools-version');
+const platformsAndroidVersionInput = document.getElementById('platforms-android-version');
+const platformToolsVersionInput = document.getElementById('platform-tools-version');
+const configAndroidVersion = document.getElementById('config-android-version');
+const configAndroidBuildNumber = document.getElementById('config-android-build-number');
+const configIosVersion = document.getElementById('config-ios-version');
+const configIosBuildNumber = document.getElementById('config-ios-build-number');
 document.addEventListener('DOMContentLoaded', async () => {
-    const d = await window.projectDetail.startReadDetailData();
-    console.log('%c d', 'background: #222; color: #bada55', d);
-    if (d) {
-        const data = $.map(d.branches, function (obj) {
+    const data = await window.projectDetail.startReadDetailData();
+    const windowData = data.windowData;
+    const configData = data.configData;
+    if (configData) {
+        configAndroidVersion.value = configData.androidVersion;
+        configAndroidBuildNumber.value = configData.androidBuildNumber;
+        configIosVersion.value = configData.iosVersion;
+        configIosBuildNumber.value = configData.iosBuildNumber;
+    }
+    if (windowData) {
+        const data = $.map(windowData.branches, function (obj) {
             obj.id = obj.id || obj.name;
             obj.text = obj.text || obj.name; //
             return obj;
         });
-
         const branchesElement = $('#branches');
         branchesElement.select2({
             data: data
         });
-        branchesElement.val(d.gitConfig.currentBranch ? d.gitConfig.currentBranch : 'master');
+        branchesElement.val(windowData.gitConfig.currentBranch ? windowData.gitConfig.currentBranch : 'master');
         branchesElement.trigger('change');
         $('#server').select2({});
         brewVersionInput.nextElementSibling.addEventListener('click', async (ev) => {
@@ -83,6 +99,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             nativeRunVersionInput.nextElementSibling.nextElementSibling.classList.remove('--hidden');
             iosDeployVersionInput.nextElementSibling.classList.add('--hidden');
             iosDeployVersionInput.nextElementSibling.nextElementSibling.classList.remove('--hidden');
+            buildToolsVersionInput.nextElementSibling.classList.add('--hidden');
+            buildToolsVersionInput.nextElementSibling.nextElementSibling.classList.remove('--hidden');
+            platformsAndroidVersionInput.nextElementSibling.classList.add('--hidden');
+            platformsAndroidVersionInput.nextElementSibling.nextElementSibling.classList.remove('--hidden');
+            platformToolsVersionInput.nextElementSibling.classList.add('--hidden');
+            platformToolsVersionInput.nextElementSibling.nextElementSibling.classList.remove('--hidden');
         });
         window.projectSettings.environmentCheckData((ev, value) => {
             if (value.type === environmentType.brew) {
@@ -146,10 +168,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 iosDeployVersionInput.nextElementSibling.classList.remove('--hidden');
                 iosDeployVersionInput.nextElementSibling.nextElementSibling.classList.add('--hidden');
             }
-
-
+            if (value.type === environmentType.buildTools) {
+                buildToolsVersionInput.value = value.data;
+                buildToolsVersionInput.nextElementSibling.classList.remove('--hidden');
+                buildToolsVersionInput.nextElementSibling.nextElementSibling.classList.add('--hidden');
+            }
+            if (value.type === environmentType.platformTools) {
+                platformToolsVersionInput.value = value.data;
+                platformToolsVersionInput.nextElementSibling.classList.remove('--hidden');
+                platformToolsVersionInput.nextElementSibling.nextElementSibling.classList.add('--hidden');
+            }
+            if (value.type === environmentType.platformsAndroid) {
+                platformsAndroidVersionInput.value = value.data;
+                platformsAndroidVersionInput.nextElementSibling.classList.remove('--hidden');
+                platformsAndroidVersionInput.nextElementSibling.nextElementSibling.classList.add('--hidden');
+            }
             console.log('%c value', 'background: #222; color: #bada55', value);
-
         });
     }
 });

@@ -221,7 +221,8 @@ input:focus {
 }
 
 .start-cleaner {
-    width: 124px;
+    width: 180px;
+    margin-top: 18px;
     height: 35px;
     background: #0f122b;
     border: 1px solid #343fa2;

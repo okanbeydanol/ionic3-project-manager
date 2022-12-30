@@ -3,6 +3,7 @@ const { PasswordManager } = require('./password-manager');
 const { value } = require('yarn/lib/cli');
 const { ZshrcManager } = require('./zshrc-manager');
 const { FsManager } = require('./fs-manager');
+const { app } = require('electron');
 
 class JavaManager {
     childManager = new ChildProcess();
@@ -43,11 +44,11 @@ class JavaManager {
             if (zshrcContent.error) {
                 return resolve(zshrcContent);
             }
-            const match = regex.exec(zshrcContent);
+            const match = regex.exec(zshrcContent.data);
             if (match) {
                 await this.sendListen(mainWindow, 'Exported Java Found! Removing: ' + match[0], this.consoleType.info);
-                zshrcContent = zshrcContent.replace(match[0], '');
-                const writeFile = await this.fsManager.writeFile(this.zshrcManager.getZshrcPath(), zshrcContent);
+                zshrcContent.data = zshrcContent.data.replace(match[0], '');
+                const writeFile = await this.fsManager.writeFile(this.zshrcManager.getZshrcPath(), zshrcContent.data);
                 if (writeFile.error) {
                     return resolve(writeFile);
                 }
@@ -121,6 +122,35 @@ class JavaManager {
         });
     }
 
+
+    async getVirtualMachinesFoldersPath(mainWindow) {
+        return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Checking java version is exist!', this.consoleType.info);
+            const getJavaVersionVirtualMachines = await this.childManager.executeCommand(
+                mainWindow,
+                '/usr/libexec/java_home -V',
+                null,
+                'You do not have any installed Java Virtual Machine on your computer.'
+            );
+            const findJavaVirtualMachinesFolderRegex = /(\/* \/Library\/Java\/JavaVirtualMachines\/\S+\/Contents\/Home\/*)/g;
+            let m;
+            let paths = [];
+            while ((m = findJavaVirtualMachinesFolderRegex.exec(getJavaVersionVirtualMachines.data)) !== null) {
+                // This is necessary to avoid infinite loops with zero-width matches
+                if (m.index === findJavaVirtualMachinesFolderRegex.lastIndex) {
+                    findJavaVirtualMachinesFolderRegex.lastIndex++;
+                }
+                m.forEach((match) => {
+                    if (typeof match !== 'undefined' && !paths.includes(match.trim().replace('/Contents/Home', '')) && match.trim().replace('/Contents/Home', '') !== '') {
+                        paths.push(match.trim().replace('/Contents/Home', ''));
+                    }
+                });
+
+            }
+            return resolve(paths);
+        });
+    }
+
     async getJavaVersionVirtualMachine(mainWindow, value = '') {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Checking java version is exist!', this.consoleType.info);
@@ -144,6 +174,51 @@ class JavaManager {
         });
     }
 
+    async getPhysicalPaths(mainWindow) {
+        return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Checking Physical Java Paths!', this.consoleType.info);
+            const getPhysicalPaths = await this.childManager.executeCommand(
+                mainWindow,
+                'find /Library/Java/JavaVirtualMachines -iregex \'.*\\(jdk\\)\'',
+                null,
+                'When try to get Physical Java Paths. Something get wrong!'
+            );
+            if (!getPhysicalPaths.error) {
+                getPhysicalPaths.data = getPhysicalPaths.data.trim().split('\n');
+                return resolve(getPhysicalPaths.data);
+            } else {
+                return resolve([]);
+            }
+        });
+    }
+
+    async cleanJavaVirtualMachinesFolders(mainWindow) {
+        return new Promise(async (resolve) => {
+            const exportedPaths = await this.getVirtualMachinesFoldersPath(mainWindow);
+            const physicalPaths = await this.getPhysicalPaths(mainWindow);
+            await physicalPaths.reduce((lastPromise, s, currentIndex, array) => {
+                return lastPromise.then(async () => {
+                    const password = await this.passwordManager.getUserPassword(mainWindow, false);
+
+                    await this.sendListen(mainWindow, 'Trying remove ' + s + ' folder!', this.consoleType.info);
+                    const mkdir = await this.childManager.executeCommand(
+                        mainWindow,
+                        'echo "' + password + '" | sudo -S -k rm -rf ' + s,
+                        null,
+                        'When try to remove ' + s + ' folder. Something get wrong!'
+                    );
+
+                    if (mkdir.error) {
+                        await this.sendListen(mainWindow, 'Password is wrong!!!  Terminal will prompt the password if you run it again!', this.consoleType.info);
+                        return mkdir.message.includes('Password:Sorry') ? await this.passwordManager.getUserPassword(mainWindow, true) : resolve(mkdir);
+                    }
+                });
+            }, Promise.resolve()).finally(async () => {
+                return resolve({ error: false, data: false });
+            });
+        });
+    }
+
     async installJavaWithAzulSettings(mainWindow, value) {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Trying fetch about latest build json information:  ' + value + ' version!', this.consoleType.info);
@@ -157,7 +232,7 @@ class JavaManager {
                 mainWindow,
                 'curl -s "' + base_url + '?jdk_version=' + jdk_version + '&bundle_type=' + bundle_type + '&ext=' + ext + '&os=' + os + '&arch=' + arch + '&javafx=false"',
                 null,
-                'When try to install Nvm. Something get wrong!'
+                'When try to fetch about latest build json information. Something get wrong!'
             );
             if (downloadJson.error) {
                 return resolve(downloadJson);
@@ -170,8 +245,8 @@ class JavaManager {
             }
             const jsonData = JSON.parse(downloadJson.data);
             const javaName = jsonData.name.replace('.zip', '');
-            await this.sendListen(mainWindow, 'Trying create JavaVirtualMachines folder!', this.consoleType.info);
 
+            await this.sendListen(mainWindow, 'Trying prompt computer password!', this.consoleType.info);
             const password = await this.passwordManager.getUserPassword(mainWindow, false);
 
             await this.sendListen(mainWindow, 'Trying create JavaVirtualMachines folder!', this.consoleType.info);
@@ -244,27 +319,33 @@ class JavaManager {
                 checkVersion = jdk_version.replace('1.', '');
             }
 
-            const javaVirtualMachine = await this.checkJavaVersionVirtualMachineExist(mainWindow, checkVersion + '.');
+            console.log('%c check', 'background: #222; color: #bada55',);
+            const javaVirtualMachine = await this.checkJavaVersionVirtualMachineExist(mainWindow, checkVersion);
             if (javaVirtualMachine.error) {
                 return resolve(javaVirtualMachine);
             }
+            console.log('%c javaVirtualMachine: ', 'background: #222; color: #bada55', javaVirtualMachine);
 
             const checkAnySetJavaVersionAndRemove = await this.checkAnySetJavaVersionAndRemove(mainWindow);
             if (checkAnySetJavaVersionAndRemove.error) {
                 return resolve(checkAnySetJavaVersionAndRemove);
             }
+            console.log('%c checkAnySetJavaVersionAndRemove: ', 'background: #222; color: #bada55', checkAnySetJavaVersionAndRemove);
 
             const setJavaVersion = await this.setJavaVersion(mainWindow, javaVirtualMachine.data);
             if (setJavaVersion.error) {
                 return resolve(setJavaVersion);
             }
+            console.log('%c setJavaVersion: ', 'background: #222; color: #bada55', setJavaVersion);
 
             const javaVersion = await this.getJavaVersion(mainWindow);
+            console.log('%c javaVersion: ', 'background: #222; color: #bada55', javaVersion);
+
             return resolve(javaVersion);
         });
     }
 
-    async sendListen(mainWindow, text, error = false, type = null) {
+    async sendListen(mainWindow, text, type = null, error = false) {
         return new Promise(async (resolve) => {
             mainWindow.webContents.send('command:listen', {
                 data: text,

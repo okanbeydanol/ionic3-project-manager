@@ -1,7 +1,13 @@
 const { ChildProcess } = require('./child_process');
+const { PasswordManager } = require('./password-manager');
+const { ZshrcManager } = require('./zshrc-manager');
+const { FsManager } = require('./fs-manager');
 
 class GradleManager {
     childManager = new ChildProcess();
+    passwordManager = new PasswordManager();
+    zshrcManager = new ZshrcManager();
+    fsManager = new FsManager();
     consoleType = {
         command: 'command',
         output: 'output',
@@ -28,44 +34,58 @@ class GradleManager {
         });
     }
 
-    async installGradleManually(mainWindow) {
+    async installGradleManually(mainWindow, value = '6.9') {
         return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Trying prompt computer password!', this.consoleType.info);
+            const password = await this.passwordManager.getUserPassword(mainWindow, false);
+
+            await this.sendListen(mainWindow, 'Trying create /opt/gradle folder!', this.consoleType.info);
             const mkdir = await this.childManager.executeCommand(
                 mainWindow,
-                'echo "oksn1234" | sudo -S -k mkdir -p /opt/gradle',
+                'echo "' + password + '" | sudo -S -k mkdir -p /opt/gradle',
                 null,
-                'When try to install Nvm. Something get wrong!'
+                'When try to create /opt/gradle folder. Something get wrong!'
             );
+
+            if (mkdir.error) {
+                await this.sendListen(mainWindow, 'Password is wrong!!!  Terminal will prompt the password if you run it again!', this.consoleType.info);
+                return mkdir.message.includes('Password:Sorry') ? await this.passwordManager.getUserPassword(mainWindow, true) : resolve(mkdir);
+            }
             console.log('%c mkdir', 'background: #222; color: #bada55', mkdir);
 
-            if (mkdir.error && mkdir.data.includes('Password:Sorry')) {
-                console.log('%c PASSWORD IS WRONG!!!!', 'background: #222; color: #bada55', mkdir);
-            }
-
+            await this.sendListen(mainWindow, 'Trying download gradle-' + value + '-bin.zip!', this.consoleType.info);
             const download = await this.childManager.executeCommand(
                 mainWindow,
-                'echo "oksn1234" | sudo -S -k curl -L https://services.gradle.org/distributions/gradle-6.9-bin.zip --output /opt/gradle/gradle-6.9-bin.zip',
+                'echo "' + password + '" | sudo -S -k curl -L https://services.gradle.org/distributions/gradle-' + value + '-bin.zip --output /opt/gradle/gradle-' + value + '-bin.zip',
                 null,
-                'When try to install Nvm. Something get wrong!'
+                'When try to download gradle-' + value + '-bin.zip. Something get wrong!'
             );
             console.log('%c download', 'background: #222; color: #bada55', download);
 
+            await this.sendListen(mainWindow, 'Trying unzip gradle-' + value + '-bin.zip!', this.consoleType.info);
             const unzip = await this.childManager.executeCommand(
                 mainWindow,
-                'echo "oksn1234" | sudo -S -k unzip -qq /opt/gradle/gradle-6.9-bin.zip -d /opt/gradle',
+                'echo "' + password + '" | sudo -S -k unzip -qq /opt/gradle/gradle-' + value + '-bin.zip -d /opt/gradle',
                 null,
-                'When try to install Nvm. Something get wrong!'
+                'When try to unzip gradle-' + value + '-bin.zip. Something get wrong!'
             );
             console.log('%c unzip', 'background: #222; color: #bada55', unzip);
 
+            await this.sendListen(mainWindow, 'Trying remove gradle-' + value + '-bin.zip!', this.consoleType.info);
             const remove = await this.childManager.executeCommand(
                 mainWindow,
-                'echo "oksn1234" | sudo -S -k rm -rf /opt/gradle/gradle-6.9-bin.zip',
+                'echo "' + password + '" | sudo -S -k rm -rf /opt/gradle/gradle-' + value + '-bin.zip',
                 null,
-                'When try to install Nvm. Something get wrong!'
+                'When try to remove gradle-' + value + '-bin.zip. Something get wrong!'
             );
+            console.log('%c remove', 'background: #222; color: #bada55', remove);
 
-            const setGradleVersion = await this.setGradleVersion(mainWindow, '6.9');
+            const checkAnySetGradleVersionAndRemove = await this.checkAnySetGradleVersionAndRemove(mainWindow);
+            if (checkAnySetGradleVersionAndRemove.error) {
+                return resolve(checkAnySetGradleVersionAndRemove);
+            }
+
+            const setGradleVersion = await this.setGradleVersion(mainWindow, value);
             if (setGradleVersion.error) {
                 return resolve(setGradleVersion);
             }
@@ -74,6 +94,27 @@ class GradleManager {
                 return resolve(gradleVersion);
             }
             return resolve(gradleVersion);
+        });
+    }
+
+    async checkAnySetGradleVersionAndRemove(mainWindow) {
+        return new Promise(async (resolve) => {
+            const regex = /(\/*export PATH=\$PATH:\/opt\/gradle\/gradle-\S+\/bin\/*)/g;
+            await this.sendListen(mainWindow, 'Trying to check any set gradle version exist and remove!', this.consoleType.info);
+            let zshrcContent = await this.zshrcManager.getZshrcContent();
+            if (zshrcContent.error) {
+                return resolve(zshrcContent);
+            }
+            const match = regex.exec(zshrcContent.data);
+            if (match) {
+                await this.sendListen(mainWindow, 'Exported Gradle Found! Removing: ' + match[0], this.consoleType.info);
+                zshrcContent.data = zshrcContent.data.replace(match[0], '');
+                const writeFile = await this.fsManager.writeFile(this.zshrcManager.getZshrcPath(), zshrcContent.data);
+                if (writeFile.error) {
+                    return resolve(writeFile);
+                }
+            }
+            return resolve({ data: false, error: false });
         });
     }
 
