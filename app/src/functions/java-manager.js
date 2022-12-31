@@ -194,7 +194,6 @@ class JavaManager {
 
     async cleanJavaVirtualMachinesFolders(mainWindow) {
         return new Promise(async (resolve) => {
-            const exportedPaths = await this.getVirtualMachinesFoldersPath(mainWindow);
             const physicalPaths = await this.getPhysicalPaths(mainWindow);
             await physicalPaths.reduce((lastPromise, s, currentIndex, array) => {
                 return lastPromise.then(async () => {
@@ -256,7 +255,6 @@ class JavaManager {
                 null,
                 'When try to create JavaVirtualMachines folder. Something get wrong!'
             );
-
             if (mkdir.error) {
                 await this.sendListen(mainWindow, 'Password is wrong!!!  Terminal will prompt the password if you run it again!', this.consoleType.info);
                 return mkdir.message.includes('Password:Sorry') ? await this.passwordManager.getUserPassword(mainWindow, true) : resolve(mkdir);
@@ -269,11 +267,9 @@ class JavaManager {
                 null,
                 'When try to download Java jdk. Something get wrong!'
             );
-
             if (download.error) {
                 resolve(download);
             }
-            console.log('%c download', 'background: #222; color: #bada55', download);
 
             await this.sendListen(mainWindow, 'Trying unzip Java jdk!', this.consoleType.info);
             const unzip = await this.childManager.executeCommand(
@@ -285,7 +281,6 @@ class JavaManager {
             if (unzip.error) {
                 resolve(unzip);
             }
-            console.log('%c unzip', 'background: #222; color: #bada55', unzip);
 
             await this.sendListen(mainWindow, 'Trying move Java jdk!', this.consoleType.info);
             const move = await this.childManager.executeCommand(
@@ -294,7 +289,6 @@ class JavaManager {
                 null,
                 'When try to move Java jdk. Something get wrong!'
             );
-            console.log('%c move', 'background: #222; color: #bada55', move);
 
             await this.sendListen(mainWindow, 'Trying remove unnecessary Java jdk zip!', this.consoleType.info);
             const removeZip = await this.childManager.executeCommand(
@@ -303,7 +297,6 @@ class JavaManager {
                 null,
                 'When try to remove unnecessary Java jdk zip. Something get wrong!'
             );
-            console.log('%c removeZip', 'background: #222; color: #bada55', removeZip);
 
             await this.sendListen(mainWindow, 'Trying remove unnecessary Java jdk folder!', this.consoleType.info);
             const removeFolder = await this.childManager.executeCommand(
@@ -312,35 +305,27 @@ class JavaManager {
                 null,
                 'When try to remove unnecessary Java jdk folder. Something get wrong!'
             );
-            console.log('%c removeFolder', 'background: #222; color: #bada55', removeFolder);
-
             let checkVersion = jdk_version;
             if (checkVersion.startsWith('1.')) {
                 checkVersion = jdk_version.replace('1.', '');
             }
 
-            console.log('%c check', 'background: #222; color: #bada55',);
             const javaVirtualMachine = await this.checkJavaVersionVirtualMachineExist(mainWindow, checkVersion);
             if (javaVirtualMachine.error) {
                 return resolve(javaVirtualMachine);
             }
-            console.log('%c javaVirtualMachine: ', 'background: #222; color: #bada55', javaVirtualMachine);
 
             const checkAnySetJavaVersionAndRemove = await this.checkAnySetJavaVersionAndRemove(mainWindow);
             if (checkAnySetJavaVersionAndRemove.error) {
                 return resolve(checkAnySetJavaVersionAndRemove);
             }
-            console.log('%c checkAnySetJavaVersionAndRemove: ', 'background: #222; color: #bada55', checkAnySetJavaVersionAndRemove);
 
             const setJavaVersion = await this.setJavaVersion(mainWindow, javaVirtualMachine.data);
             if (setJavaVersion.error) {
                 return resolve(setJavaVersion);
             }
-            console.log('%c setJavaVersion: ', 'background: #222; color: #bada55', setJavaVersion);
 
             const javaVersion = await this.getJavaVersion(mainWindow);
-            console.log('%c javaVersion: ', 'background: #222; color: #bada55', javaVersion);
-
             return resolve(javaVersion);
         });
     }

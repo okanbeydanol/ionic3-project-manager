@@ -142,7 +142,7 @@ class EnvironmentManager {
         return new Promise(async (resolve) => {
             let sdkManagerVersion = await this.sdkManager.getAndroidSdkVersion(mainWindow);
             if (sdkManagerVersion.error) {
-                await this.sendListen(mainWindow, 'Trying install gradle!');
+                await this.sendListen(mainWindow, 'Trying install Android Sdk!');
                 sdkManagerVersion = await this.sdkManager.installAndroidSdkWithBrew(mainWindow);
                 if (sdkManagerVersion.error) {
                     return resolve(sdkManagerVersion);

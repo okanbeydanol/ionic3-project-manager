@@ -10,6 +10,7 @@ const { JavaManager } = require('../functions/java-manager');
 const config_path = path.join(__dirname, '../config');
 const { globalFunctions } = require('../functions/global-shared');
 const { PasswordManager } = require('../functions/password-manager');
+const { SdkManager } = require('../functions/sdk-manager');
 
 (async () => {
     let mainWindow = null;
@@ -76,6 +77,19 @@ const { PasswordManager } = require('../functions/password-manager');
             console.log('%c installJava', 'background: #222; color: #bada55', installJava);
             return true;
         });
+        ipcMain.handle('projectDetail:installBuildToolsSettings', async (_event, value) => {
+            console.log('%c installBuildToolsValue', 'background: #222; color: #bada55', value);
+            const installBuildTools = await new SdkManager().installBuildTools(mainWindow, value);
+            console.log('%c installBuildTools', 'background: #222; color: #bada55', installBuildTools);
+            return true;
+        });
+        ipcMain.handle('projectDetail:installPlatformsSettings', async (_event, value) => {
+            console.log('%c installPlatformsValue', 'background: #222; color: #bada55', value);
+            const installPlatforms = await new SdkManager().installPlatforms(mainWindow, value);
+            console.log('%c installPlatforms', 'background: #222; color: #bada55', installPlatforms);
+            return true;
+        });
+
         ipcMain.handle('projectDetail:setPasswordDialog', async (_event, value) => {
             const setPasswordDialog = await new PasswordManager().setNewPassword(mainWindow, value);
             console.log('%c setPasswordDialog', 'background: #222; color: #bada55', setPasswordDialog);

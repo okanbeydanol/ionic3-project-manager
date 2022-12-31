@@ -20,5 +20,7 @@ contextBridge.exposeInMainWorld('projectSettings', {
     environmentCheckData: (callback) => ipcRenderer.on('projectSettings:environmentCheckData', callback),
     cleanerStarted: (callback) => ipcRenderer.on('projectSettings:cleanerStarted', callback),
     installBrewSettings: (value) => ipcRenderer.invoke('projectDetail:installBrewSettings', value),
-    installJavaWithAzulSettings: (value) => ipcRenderer.invoke('projectDetail:installJavaWithAzulSettings', value)
+    installJavaWithAzulSettings: (value) => ipcRenderer.invoke('projectDetail:installJavaWithAzulSettings', value),
+    installBuildToolsSettings: (value) => ipcRenderer.invoke('projectDetail:installBuildToolsSettings', value),
+    installPlatformsSettings: (value) => ipcRenderer.invoke('projectDetail:installPlatformsSettings', value)
 });

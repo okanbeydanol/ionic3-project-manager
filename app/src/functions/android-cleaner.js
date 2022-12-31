@@ -4,12 +4,14 @@ const { FsManager } = require('./fs-manager');
 const path = require('path');
 const { PackageJsonManager } = require('./package_json_control');
 const { EnvironmentManager } = require('./environment-manager');
+const { SdkManager } = require('./sdk-manager');
 const config_path = path.join(__dirname, '../config');
 
 class AndroidCleaner {
     CordovaManager = new CordovaManager();
     childManager = new ChildProcess();
     environmentManager = new EnvironmentManager();
+    sdkManager = new SdkManager();
     consoleType = {
         command: 'command',
         output: 'output',
@@ -30,7 +32,7 @@ class AndroidCleaner {
             if (environmentCheck.error) {
                 return resolve(environmentCheck);
             }
-            /*       if (command.includes('node_modules')) {
+            /*    if (command.includes('node_modules')) {
                        const refreshNodeModules = await this.refresh_only_node_modules(mainWindow);
                        if (refreshNodeModules.error) {
                            return resolve(refreshNodeModules);

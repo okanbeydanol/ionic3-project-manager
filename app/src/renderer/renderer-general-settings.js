@@ -59,20 +59,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         branchesElement.trigger('change');
         $('#server').select2({});
         brewVersionInput.nextElementSibling.addEventListener('click', async (ev) => {
-            console.log('%c kadhfashdfhsadfsdfsd', 'background: #222; color: #bada55', brewVersionInput.value);
-            brewVersionInput.nextElementSibling.classList.add('--hidden');
-            brewVersionInput.nextElementSibling.nextElementSibling.classList.remove('--hidden');
-            const result = await window.projectSettings.installBrewSettings(brewVersionInput.value);
-            brewVersionInput.nextElementSibling.classList.remove('--hidden');
-            brewVersionInput.nextElementSibling.nextElementSibling.classList.add('--hidden');
+            if (brewVersionInput.value) {
+                brewVersionInput.nextElementSibling.classList.add('--hidden');
+                brewVersionInput.nextElementSibling.nextElementSibling.classList.remove('--hidden');
+                const result = await window.projectSettings.installBrewSettings(brewVersionInput.value);
+                brewVersionInput.nextElementSibling.classList.remove('--hidden');
+                brewVersionInput.nextElementSibling.nextElementSibling.classList.add('--hidden');
+            }
         });
         javaVersionInput.nextElementSibling.addEventListener('click', async (ev) => {
-            console.log('%c kadhfashdfhsadfsdfsd2', 'background: #222; color: #bada55', javaVersionInput.value);
-            javaVersionInput.nextElementSibling.classList.add('--hidden');
-            javaVersionInput.nextElementSibling.nextElementSibling.classList.remove('--hidden');
-            const result = await window.projectSettings.installJavaWithAzulSettings(javaVersionInput.value);
-            javaVersionInput.nextElementSibling.classList.remove('--hidden');
-            javaVersionInput.nextElementSibling.nextElementSibling.classList.add('--hidden');
+            if (javaVersionInput.value) {
+                javaVersionInput.nextElementSibling.classList.add('--hidden');
+                javaVersionInput.nextElementSibling.nextElementSibling.classList.remove('--hidden');
+                const result = await window.projectSettings.installJavaWithAzulSettings(javaVersionInput.value);
+                javaVersionInput.nextElementSibling.classList.remove('--hidden');
+                javaVersionInput.nextElementSibling.nextElementSibling.classList.add('--hidden');
+            }
+        });
+        buildToolsVersionInput.nextElementSibling.addEventListener('click', async (ev) => {
+            if (buildToolsVersionInput.value) {
+                buildToolsVersionInput.nextElementSibling.classList.add('--hidden');
+                buildToolsVersionInput.nextElementSibling.nextElementSibling.classList.remove('--hidden');
+                const result = await window.projectSettings.installBuildToolsSettings(buildToolsVersionInput.value);
+                buildToolsVersionInput.nextElementSibling.classList.remove('--hidden');
+                buildToolsVersionInput.nextElementSibling.nextElementSibling.classList.add('--hidden');
+            }
+        });
+        platformsAndroidVersionInput.nextElementSibling.addEventListener('click', async (ev) => {
+            if (platformsAndroidVersionInput.value) {
+                platformsAndroidVersionInput.nextElementSibling.classList.add('--hidden');
+                platformsAndroidVersionInput.nextElementSibling.nextElementSibling.classList.remove('--hidden');
+                const result = await window.projectSettings.installPlatformsSettings(platformsAndroidVersionInput.value);
+                platformsAndroidVersionInput.nextElementSibling.classList.remove('--hidden');
+                platformsAndroidVersionInput.nextElementSibling.nextElementSibling.classList.add('--hidden');
+            }
         });
         window.projectSettings.cleanerStarted((ev, value) => {
             brewVersionInput.nextElementSibling.classList.add('--hidden');
