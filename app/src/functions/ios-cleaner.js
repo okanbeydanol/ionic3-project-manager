@@ -4,6 +4,7 @@ const { FsManager } = require('./fs-manager');
 const path = require('path');
 const { PackageJsonManager } = require('./package_json_control');
 const { EnvironmentManager } = require('./environment-manager');
+const { globalFunctions } = require('./global-shared');
 const config_path = path.join(__dirname, '../config');
 
 class IosCleaner {
@@ -16,6 +17,7 @@ class IosCleaner {
         error: 'error',
         info: 'info'
     };
+    settingsJSON = null;
 
     constructor() {
     }
@@ -39,19 +41,13 @@ class IosCleaner {
 
     async refresh_only_node_modules(mainWindow) {
         return new Promise(async (resolve) => {
-            this.config = await new FsManager().readFile(config_path + '/settings.json', {
-                encoding: 'utf8',
-                flag: 'r',
-                signal: null
-            }).then((d) => {
-                return JSON.parse(d.data);
-            });
+            this.settingsJSON = await globalFunctions.getSettingsJSON;
             await this.sendListen(mainWindow, 'Deleting the www folder!', this.consoleType.info);
-            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.WWW);
+            await this.remove_folder_if_exist(this.settingsJSON.project_path + '/' + this.settingsJSON.folders.WWW);
             await this.sendListen(mainWindow, 'Deleting the node_modules folder!', this.consoleType.info);
-            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.NODE_MODULES);
+            await this.remove_folder_if_exist(this.settingsJSON.project_path + '/' + this.settingsJSON.folders.NODE_MODULES);
             await this.sendListen(mainWindow, 'Deleting the package_lock.json folder!', this.consoleType.info);
-            await this.remove_file_if_exist(this.config.project_path + '/' + this.config.folders.PACKAGE_LOCK_JSON);
+            await this.remove_file_if_exist(this.settingsJSON.project_path + '/' + this.settingsJSON.folders.PACKAGE_LOCK_JSON);
 
             await this.sendListen(mainWindow, 'Npm Cache is verifying!', this.consoleType.info);
             const npmCacheVerify = await this.childManager.executeCommand(
@@ -76,7 +72,7 @@ class IosCleaner {
             }
 
             await this.sendListen(mainWindow, '--------BEFORE BUILD NODE MODULES FIXES----------', this.consoleType.info);
-            const editFiles = await this.editFiles(mainWindow, 'before_build', 'node_modules', this.config.project_path);
+            const editFiles = await this.editFiles(mainWindow, 'before_build', 'node_modules', this.settingsJSON.project_path);
             if (editFiles.error) {
                 return resolve(editFiles);
             }
@@ -90,19 +86,15 @@ class IosCleaner {
 
     async refresh_only_ios(mainWindow) {
         return new Promise(async (resolve) => {
-            this.config = await new FsManager().readFile(config_path + '/settings.json', {
-                encoding: 'utf8',
-                flag: 'r',
-                signal: null
-            }).then((d) => {
-                return JSON.parse(d.data);
-            });
+            this.settingsJSON = await globalFunctions.getSettingsJSON;
             await this.sendListen(mainWindow, 'Deleting the www folder!', this.consoleType.info);
-            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.WWW);
+            await this.remove_folder_if_exist(this.settingsJSON.project_path + '/' + this.settingsJSON.folders.WWW);
             await this.sendListen(mainWindow, 'Deleting the plugins folder!', this.consoleType.info);
-            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.PLUGINS);
+            await this.remove_folder_if_exist(this.settingsJSON.project_path + '/' + this.settingsJSON.folders.PLUGINS);
             await this.sendListen(mainWindow, 'Deleting the ios folder!', this.consoleType.info);
-            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.IOS);
+            await this.remove_folder_if_exist(this.settingsJSON.project_path + '/' + this.settingsJSON.folders.IOS);
+            await this.sendListen(mainWindow, 'Deleting the android folder!', this.consoleType.info);
+            await this.remove_folder_if_exist(this.settingsJSON.project_path + '/' + this.settingsJSON.folders.ANDROID);
 
             await this.CordovaManager.fixMacOsReleaseName(mainWindow, false);
 
@@ -181,7 +173,7 @@ class IosCleaner {
 
 
             await this.sendListen(mainWindow, '--------BEFORE BUILD IOS FIXES----------', this.consoleType.info);
-            const editFilesBefore = await this.editFiles(mainWindow, 'before_build', 'platforms/ios', this.config.project_path);
+            const editFilesBefore = await this.editFiles(mainWindow, 'before_build', 'platforms/ios', this.settingsJSON.project_path);
             if (editFilesBefore.error) {
                 return resolve(editFilesBefore);
             }
@@ -202,7 +194,7 @@ class IosCleaner {
             }
 
             await this.sendListen(mainWindow, '--------AFTER BUILD IOS FIXES----------', this.consoleType.info);
-            const editFilesAfter = await this.editFiles(mainWindow, 'before_build', 'platforms/ios', this.config.project_path);
+            const editFilesAfter = await this.editFiles(mainWindow, 'before_build', 'platforms/ios', this.settingsJSON.project_path);
             if (editFilesAfter.error) {
                 return resolve(editFilesAfter);
             }

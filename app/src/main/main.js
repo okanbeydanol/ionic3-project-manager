@@ -1,21 +1,21 @@
 'use strict';
-const { app, BrowserWindow, ipcMain, nativeTheme, ipcRenderer, remote } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const request = require('request');
 const { FsManager } = require('../functions/fs-manager');
 const { AndroidCleaner } = require('../functions/android-cleaner');
-const { ZshrcManager } = require('../functions/zshrc-manager');
 const { BrewManager } = require('../functions/brew-manager');
 const { JavaManager } = require('../functions/java-manager');
 const config_path = path.join(__dirname, '../config');
 const { globalFunctions } = require('../functions/global-shared');
 const { PasswordManager } = require('../functions/password-manager');
 const { SdkManager } = require('../functions/sdk-manager');
+const { PackageJsonManager } = require('../functions/package_json_control');
 
 (async () => {
     let mainWindow = null;
     let settingsWindow = null;
-    let deployWindow = null;
+    let advanceSettingsWindow = null;
     let dragDropWindow = null;
     let currentBranch = 'master';
     let github_project_url = null;
@@ -39,7 +39,6 @@ const { SdkManager } = require('../functions/sdk-manager');
             await openDragDropWindow();
         }
     };
-    console.log('%c remote', 'background: #222; color: #bada55', remote);
     const startHandle = async () => {
         ipcMain.handle('projectDetail:startRead', async (_event, value) => {
             globalFunctions.setCurrentPath = await globalFunctions.getProjectPath;
@@ -56,8 +55,8 @@ const { SdkManager } = require('../functions/sdk-manager');
             return true;
         });
         ipcMain.handle('projectDetail:currentPath', async (_event) => {
-            const config = await globalFunctions.getConfig;
-            return config.current_path;
+            const settingsJSON = await globalFunctions.getSettingsJSON;
+            return settingsJSON.current_path;
         });
         ipcMain.handle('projectDetail:startReadDetailData', async (_event) => {
             if (windowData && !windowData.error && configData && !windowData.error) {
@@ -94,6 +93,43 @@ const { SdkManager } = require('../functions/sdk-manager');
             const setPasswordDialog = await new PasswordManager().setNewPassword(mainWindow, value);
             console.log('%c setPasswordDialog', 'background: #222; color: #bada55', setPasswordDialog);
             return setPasswordDialog;
+        });
+        ipcMain.handle('projectDetail:startReadAdvance', async (ev) => {
+            const package_json = await new PackageJsonManager().init();
+            const node_modules_fixes = await new FsManager().readFile(config_path + '/node_modules_fixes.json', {
+                encoding: 'utf8',
+                flag: 'r',
+                signal: null
+            }).then((d) => {
+                return JSON.parse(d.data);
+            });
+            const android_fixes = await new FsManager().readFile(config_path + '/android_fixes.json', {
+                encoding: 'utf8',
+                flag: 'r',
+                signal: null
+            }).then((d) => {
+                return JSON.parse(d.data);
+            });
+            const ios_fixes = await new FsManager().readFile(config_path + '/ios_fixes.json', {
+                encoding: 'utf8',
+                flag: 'r',
+                signal: null
+            }).then((d) => {
+                return JSON.parse(d.data);
+            });
+            const androidHooks = await globalFunctions.getAndroidHooks;
+            const iosHooks = await globalFunctions.getIosHooks;
+            return {
+                data: {
+                    node_modules_fixes: node_modules_fixes,
+                    android_fixes: android_fixes,
+                    ios_fixes: ios_fixes,
+                    package_json: package_json.data,
+                    androidHooks: androidHooks,
+                    iosHooks: iosHooks
+                },
+                error: false
+            };
         });
     };
 
@@ -218,51 +254,29 @@ const { SdkManager } = require('../functions/sdk-manager');
         await settingsWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/generalSettings/index.html'));
         await settingsWindow.webContents.openDevTools({ mode: 'detach' });
         settingsWindow.show();
-        /*  const settingsWindowXY = settingsWindow.getPosition();
-          const settingsWindowGetSize = settingsWindow.getSize();
-          deployWindow = new BrowserWindow({
-              width: 300,
-              height: 300,
-              webPreferences: {
-                  devTools: true,
-                  disableHtmlFullscreenWindowResize: true,
-                  nodeIntegration: true,
-                  enableRemoteModule: true,
-                  webSecurity: true,
-                  experimentalFeatures: false,
-                  contextIsolation: true,
-                  preload: path.resolve(app.getAppPath(), 'app/src/preload/preload.js'),
-                  show: false
-              },
-              x: mainWindowXY[0] + mainWindowGetSize[0] + 20,
-              y: settingsWindowXY[1] + settingsWindowGetSize[1] + 20
-          });
-          // Open the DevTools.
-          await deployWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/deployForTest/index.html'));
-          await deployWindow.webContents.openDevTools({ mode: 'detach' });
-          deployWindow.show();*/
-        /*      await sendListen(mainWindow, '-------- AndroidManifest.xml Start WATCH! ----------', consoleType.info);
-                new StartWatcher(async (type, path) => {
-                    const requestRegex = /(\/!*<uses-permission android:name="android\.permission\.REQUEST_INSTALL_PACKAGES" \/>\/!*)/;
-                    const cameraRegex = /(\/!*<uses-permission android:name="android\.permission\.CAMERA" \/>\/!*)/;
-                    let fileContent = await new FsManager().readFile(path, {
-                        encoding: 'utf8',
-                        flag: 'r',
-                        signal: null
-                    })
-                    const requestRegexMatch = requestRegex.exec(fileContent.data);
-                    if (requestRegexMatch) {
-                        await sendListen(mainWindow, '-------- AndroidManifest REMOVING CAMERA PERMISSION ----------', consoleType.info);
-                        fileContent.data = fileContent.data.replace(requestRegex, '');
-                        await new FsManager().writeFile(path, fileContent.data);
-                    }
-                    const cameraRegexMatch = cameraRegex.exec(fileContent.data);
-                    if (cameraRegexMatch) {
-                        await sendListen(mainWindow, '-------- AndroidManifest REMOVING REQUEST_INSTALL_PACKAGES PERMISSION  ----------', consoleType.info);
-                        fileContent.data = fileContent.data.replace(cameraRegex, '');
-                        await new FsManager().writeFile(path, fileContent.data);
-                    }
-                }, [ config.project_path + '/platforms/android/app/src/main/AndroidManifest.xml' ], [ 'change' ]);*/
+        const settingsWindowXY = settingsWindow.getPosition();
+        const settingsWindowGetSize = settingsWindow.getSize();
+        advanceSettingsWindow = new BrowserWindow({
+            width: 1250,
+            height: 824,
+            webPreferences: {
+                devTools: true,
+                disableHtmlFullscreenWindowResize: true,
+                nodeIntegration: true,
+                enableRemoteModule: true,
+                webSecurity: true,
+                experimentalFeatures: false,
+                contextIsolation: true,
+                preload: path.resolve(app.getAppPath(), 'app/src/preload/preload.js'),
+                show: false
+            }
+            /*  x: mainWindowXY[0] + mainWindowGetSize[0] + 20,
+              y: settingsWindowXY[1] + settingsWindowGetSize[1] + 20*/
+        });
+        // Open the DevTools.
+        await advanceSettingsWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/advanceSettings/index.html'));
+        await advanceSettingsWindow.webContents.openDevTools({ mode: 'detach' });
+        advanceSettingsWindow.show();
         return {
             data: true,
             error: false
@@ -413,38 +427,11 @@ const { SdkManager } = require('../functions/sdk-manager');
     };
     const readConfigXml = async () => {
         const project_path = await globalFunctions.getProjectPath;
-        const configExist = await new FsManager().pathExist(project_path + '/config.xml');
-        if (!configExist.data) {
-            return configExist;
-        }
-        const configXml = await new FsManager().readFile(project_path + '/config.xml', {
-            encoding: 'utf8',
-            flag: 'r',
-            signal: null
-        });
-        if (configXml.error) {
-            return configXml;
-        }
-        /*
-            StartWatcher(path.resolve(app.getAppPath(), 'app/src/'));
-        */
-        const versionRegex = /(\/*version="\S+\/*)/;
-        const versionCodeRegex = /(\/* versionCode="\S+\/*)/;
-        const androidVersionCodeRegex = /(\/*android-versionCode="\S+\/*)/;
-        const iosCFBundleVersionRegex = /(\/*ios-CFBundleVersion="\S+\/*)/;
-        const projectTitleRegex = /(\/*<name>\S+<\/name>\/*)/;
-
-        const versionRegexMatch = versionRegex.exec(configXml.data);
-        const androidVersionCodeRegexMatch = androidVersionCodeRegex.exec(configXml.data);
-        const iosCFBundleVersionRegexMatch = iosCFBundleVersionRegex.exec(configXml.data);
-        const versionCodeRegexMatch = versionCodeRegex.exec(configXml.data);
-        const projectTitleMatch = projectTitleRegex.exec(configXml.data);
-
-        android_version = versionRegexMatch[0].split('=')[1].replace('"', '').replace('"', '');
-        ios_version = versionCodeRegexMatch[0].split('=')[1].replace('"', '').replace('"', '');
-        android_build_number = androidVersionCodeRegexMatch[0].split('=')[1].replace('"', '').replace('"', '');
-        ios_build_number = iosCFBundleVersionRegexMatch[0].split('=')[1].replace('"', '').replace('"', '');
-        const project_title = projectTitleMatch[0].replace('<name>', '').replace('</name>', '');
+        android_version = await globalFunctions.getAndroidVersion;
+        ios_version = await globalFunctions.getIosVersion;
+        android_build_number = await globalFunctions.getAndroidVersionCode;
+        ios_build_number = await globalFunctions.getIosVersionCode;
+        const project_title = await globalFunctions.getNames;
         return {
             error: false,
             data: {
@@ -453,7 +440,7 @@ const { SdkManager } = require('../functions/sdk-manager');
                 iosVersion: ios_version,
                 androidBuildNumber: android_build_number,
                 iosBuildNumber: ios_build_number,
-                projectTitle: project_title
+                projectTitle: project_title[0]
             }
         };
     };

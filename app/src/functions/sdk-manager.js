@@ -249,6 +249,102 @@ class SdkManager {
         });
     }
 
+    async installSystemImages(mainWindow, systemImages) {
+        return new Promise(async (resolve) => {
+            let androidSdkManagerVersion = await this.getAndroidSdkVersion(mainWindow);
+            if (androidSdkManagerVersion.error) {
+                await this.sendListen(mainWindow, 'Trying install Android-Sdk with brew!', this.consoleType.info);
+                const brewInstallAndroidSdk = await this.brewInstallAndroidSdk(mainWindow);
+                if (brewInstallAndroidSdk.error) {
+                    return resolve(brewInstallAndroidSdk);
+                }
+                const brewExceptLicensesAndroidSdk = await this.brewExceptLicensesAndroidSdk(mainWindow);
+                if (brewExceptLicensesAndroidSdk.error) {
+                    return resolve(brewExceptLicensesAndroidSdk);
+                }
+                const checkExportedAndroidHomeOrAndroidRootAndRemove = await this.checkExportedAndroidHomeOrAndroidRootAndRemove(mainWindow);
+                if (checkExportedAndroidHomeOrAndroidRootAndRemove.error) {
+                    return resolve(checkExportedAndroidHomeOrAndroidRootAndRemove);
+                }
+                const exportAndroidSdkRoot = await this.exportAndroidSdkRoot(mainWindow);
+                if (exportAndroidSdkRoot.error) {
+                    return resolve(exportAndroidSdkRoot);
+                }
+            }
+
+            await this.sendListen(mainWindow, 'Trying install system Images!', this.consoleType.info);
+            const installSystemImages = await this.childManager.executeCommand(
+                mainWindow,
+                `echo yes | sdkmanager "system-images;${ systemImages.android };${ systemImages.type };${ systemImages.core }"`,
+                null,
+                'When try to install system images. Something get wrong!', () => {
+                }, {
+                    command: true,
+                    liveOutput: false,
+                    endOutput: true,
+                    endError: true,
+                    info: true
+                }
+            );
+
+            const checkExportedSystemImagesVersionAndRemove = await this.checkExportedSystemImagesVersionAndRemove(mainWindow);
+            if (checkExportedSystemImagesVersionAndRemove.error) {
+                return resolve(checkExportedSystemImagesVersionAndRemove);
+            }
+
+            const exportSystemImages = await this.exportSystemImages(mainWindow, systemImages);
+            return resolve(exportSystemImages);
+        });
+    }
+
+    async installEmulator(mainWindow) {
+        return new Promise(async (resolve) => {
+            let androidSdkManagerVersion = await this.getAndroidSdkVersion(mainWindow);
+            if (androidSdkManagerVersion.error) {
+                await this.sendListen(mainWindow, 'Trying install Android-Sdk with brew!', this.consoleType.info);
+                const brewInstallAndroidSdk = await this.brewInstallAndroidSdk(mainWindow);
+                if (brewInstallAndroidSdk.error) {
+                    return resolve(brewInstallAndroidSdk);
+                }
+                const brewExceptLicensesAndroidSdk = await this.brewExceptLicensesAndroidSdk(mainWindow);
+                if (brewExceptLicensesAndroidSdk.error) {
+                    return resolve(brewExceptLicensesAndroidSdk);
+                }
+                const checkExportedAndroidHomeOrAndroidRootAndRemove = await this.checkExportedAndroidHomeOrAndroidRootAndRemove(mainWindow);
+                if (checkExportedAndroidHomeOrAndroidRootAndRemove.error) {
+                    return resolve(checkExportedAndroidHomeOrAndroidRootAndRemove);
+                }
+                const exportAndroidSdkRoot = await this.exportAndroidSdkRoot(mainWindow);
+                if (exportAndroidSdkRoot.error) {
+                    return resolve(exportAndroidSdkRoot);
+                }
+            }
+
+            await this.sendListen(mainWindow, 'Trying install emulator!', this.consoleType.info);
+            const installEmulator = await this.childManager.executeCommand(
+                mainWindow,
+                `echo yes | sdkmanager "emulator"`,
+                null,
+                'When try to install emulator. Something get wrong!', () => {
+                }, {
+                    command: true,
+                    liveOutput: false,
+                    endOutput: true,
+                    endError: true,
+                    info: true
+                }
+            );
+
+            const checkExportedEmulatorVersionAndRemove = await this.checkExportedEmulatorVersionAndRemove(mainWindow);
+            if (checkExportedEmulatorVersionAndRemove.error) {
+                return resolve(checkExportedEmulatorVersionAndRemove);
+            }
+
+            const exportAndroidEmulator = await this.exportAndroidEmulator(mainWindow);
+            return resolve(exportAndroidEmulator);
+        });
+    }
+
     async checkExportedAndroidHomeOrAndroidRootAndRemove(mainWindow) {
         return new Promise(async (resolve) => {
             const regexANDROID_SDK_ROOT = /(\/*export ANDROID_SDK_ROOT=\S+\n?\/*)/g;
@@ -374,6 +470,27 @@ class SdkManager {
         });
     }
 
+    async checkExportedEmulatorVersionAndRemove(mainWindow) {
+        return new Promise(async (resolve) => {
+            const regexEmulator = /(\/*export PATH=\$PATH:\$ANDROID_SDK_ROOT\/emulator\/*)/g;
+            await this.sendListen(mainWindow, 'Trying to check any set emulator version exist and remove!', this.consoleType.info);
+            let zshrcContent = await this.zshrcManager.getZshrcContent();
+            if (zshrcContent.error) {
+                return resolve(zshrcContent);
+            }
+            let match = regexEmulator.exec(zshrcContent.data);
+            if (match) {
+                await this.sendListen(mainWindow, 'Exported emulator Found! Removing: ' + match[0], this.consoleType.info);
+                zshrcContent.data = zshrcContent.data.replace(regexEmulator, '');
+                const writeFile = await this.fsManager.writeFile(this.zshrcManager.getZshrcPath(), zshrcContent.data);
+                if (writeFile.error) {
+                    return resolve(writeFile);
+                }
+            }
+            return resolve({ data: false, error: false });
+        });
+    }
+
     async exportAndroidSdkRoot(mainWindow) {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Trying export ANDROID SDK ROOT to ~/.zprofile!', this.consoleType.info);
@@ -483,12 +600,14 @@ export PATH=$PATH:$ANDROID_SDK_ROOT/sources/${ currentValue }' >> ~/.szshrc`,
         });
     }
 
-    async exportSystemImages(mainWindow) {
+    async exportSystemImages(mainWindow, systemImages) {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Trying export platforms to ~/.zprofile!', this.consoleType.info);
             await this.childManager.executeCommand(
                 mainWindow,
-                `echo 'export PATH=$PATH:$ANDROID_SDK_ROOT/system-images/android-21' >> ~/.zprofile`,
+                `echo 'export PATH=$PATH:$ANDROID_SDK_ROOT/system-images/${ systemImages.android }
+export PATH=$PATH:$ANDROID_SDK_ROOT/system-images/${ systemImages.android }/${ systemImages.type }
+export PATH=$PATH:$ANDROID_SDK_ROOT/system-images/${ systemImages.android }/${ systemImages.type }/${ systemImages.core }' >> ~/.zprofile`,
                 null,
                 'When try to export system images to ~/.zprofile. Something get wrong!'
             );
@@ -496,9 +615,32 @@ export PATH=$PATH:$ANDROID_SDK_ROOT/sources/${ currentValue }' >> ~/.szshrc`,
             await this.sendListen(mainWindow, 'Trying export platforms to ~/.szshrc!', this.consoleType.info);
             await this.childManager.executeCommand(
                 mainWindow,
-                `echo 'export PATH=$PATH:$ANDROID_SDK_ROOT/system-images/android-21' >> ~/.szshrc`,
+                `echo 'export PATH=$PATH:$ANDROID_SDK_ROOT/system-images/${ systemImages.android }
+export PATH=$PATH:$ANDROID_SDK_ROOT/system-images/${ systemImages.android }/${ systemImages.type }
+export PATH=$PATH:$ANDROID_SDK_ROOT/system-images/${ systemImages.android }/${ systemImages.type }/${ systemImages.core }' >> ~/.szshrc`,
                 null,
                 'When try to export system images to ~/.szshrc. Something get wrong!'
+            );
+            return resolve({ error: false, data: false });
+        });
+    }
+
+    async exportAndroidEmulator(mainWindow) {
+        return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Trying export emulator to ~/.zprofile!', this.consoleType.info);
+            await this.childManager.executeCommand(
+                mainWindow,
+                `echo 'export PATH=$PATH:$ANDROID_SDK_ROOT/emulator' >> ~/.zprofile`,
+                null,
+                'When try to export emulator to ~/.zprofile. Something get wrong!'
+            );
+
+            await this.sendListen(mainWindow, 'Trying export emulator to ~/.szshrc!', this.consoleType.info);
+            await this.childManager.executeCommand(
+                mainWindow,
+                `echo 'export PATH=$PATH:$ANDROID_SDK_ROOT/emulator' >> ~/.szshrc`,
+                null,
+                'When try to export emulator to ~/.szshrc. Something get wrong!'
             );
             return resolve({ error: false, data: false });
         });
@@ -564,6 +706,43 @@ export PATH=$PATH:$ANDROID_SDK_ROOT/sources/${ currentValue }' >> ~/.szshrc`,
         });
     }
 
+    async getAndroidAvailableAvdManagerList(mainWindow) {
+        return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Checking android available avd manager list!', this.consoleType.info);
+            const androidAvailableAvdManagerList = await this.childManager.executeCommand(
+                mainWindow,
+                'avdmanager list  | awk \'/Available/{flag=1; next} /Installed/{flag=0} flag\'',
+                null,
+                'When try to get available avd manager list. Something get wrong!', () => {
+                }, {
+                    command: true,
+                    liveOutput: false,
+                    endOutput: false,
+                    endError: true,
+                    info: true
+                }
+            );
+            if (androidAvailableAvdManagerList.error) {
+                return resolve(androidAvailableAvdManagerList);
+            }
+            const regex = /id: \d+ or "[\S|\ |\d]+"\n +Name: [\S|\ |\d]+\n +OEM : [\S|\ |\d]+\n/g;
+            let m;
+            const lists = [];
+            while ((m = regex.exec(androidAvailableAvdManagerList.data)) !== null) {
+                if (m.index === regex.lastIndex) {
+                    regex.lastIndex++;
+                }
+                m.forEach((match) => {
+                    if (match && !lists.includes(match)) {
+                        lists.push(match);
+                    }
+                });
+            }
+            return resolve({ error: false, data: lists });
+        });
+    }
+
+
     async brewInstallAndroidSdk(mainWindow) {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Android Sdk is installing', this.consoleType.info);
@@ -599,7 +778,8 @@ export PATH=$PATH:$ANDROID_SDK_ROOT/sources/${ currentValue }' >> ~/.szshrc`,
 
     async installAndroidSdkWithBrew(mainWindow, data = {
         buildTools: '31.0.0',
-        platforms: 'android-31'
+        platforms: 'android-29',
+        systemImages: { type: 'google_apis_playstore', core: 'arm64-v8a', android: 'android-31' }
     }) {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Trying install Android-Sdk with brew!', this.consoleType.info);
@@ -638,29 +818,20 @@ export PATH=$PATH:$ANDROID_SDK_ROOT/sources/${ currentValue }' >> ~/.szshrc`,
                 return resolve(installBuildTools);
             }
 
-            const installSystemImages = await this.childManager.executeCommand(
-                mainWindow,
-                `echo yes | sdkmanager "system-images;android-21;google_apis;armeabi-v7a"`,
-                null,
-                'When try to install system images. Something get wrong!', () => {
-                }, {
-                    command: true,
-                    liveOutput: false,
-                    endOutput: false,
-                    endError: true,
-                    info: true
-                }
-            );
-
-            const checkExportedSystemImagesVersionAndRemove = await this.checkExportedSystemImagesVersionAndRemove(mainWindow);
-            if (checkExportedSystemImagesVersionAndRemove.error) {
-                return resolve(checkExportedSystemImagesVersionAndRemove);
+            const installSystemImages = await this.installSystemImages(mainWindow, data.systemImages);
+            if (installSystemImages.error) {
+                return resolve(installSystemImages);
             }
 
-            const exportSystemImages = await this.exportSystemImages(mainWindow);
-            if (exportSystemImages.error) {
-                return resolve(exportSystemImages);
+            const installEmulator = await this.installEmulator(mainWindow);
+            if (installEmulator.error) {
+                return resolve(installEmulator);
             }
+
+            //avdmanager -s create avd -k "system-images;android-31;google_apis;arm64-v8a" -n "Pixel_2" -d "pixel_2" -f
+            //emulator -avd Pixel_2 -no-snapshot-save -no-snapshot-load -no-boot-anim -netdelay none -no-snapshot -wipe-data
+            //emulator -list-avds
+
             const androidSdkManagerVersion = await this.getAndroidSdkVersion(mainWindow);
             await this.sendListen(mainWindow, 'Android Sdk is installed!', this.consoleType.info);
             return resolve(androidSdkManagerVersion);

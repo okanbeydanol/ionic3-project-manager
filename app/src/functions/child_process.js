@@ -1,9 +1,8 @@
-const { exec, execSync } = require('child_process');
-const path = require('path');
+const { exec } = require('child_process');
 const { FsManager } = require('./fs-manager');
 const { ZshrcManager } = require('./zshrc-manager');
 const { app } = require('electron');
-const config_path = path.join(__dirname, '../config');
+const { globalFunctions } = require('./global-shared');
 
 class ChildProcess {
     colors = [
@@ -77,8 +76,7 @@ class ChildProcess {
         }
     ];
 
-    config_path = path.join(__dirname, '../config');
-    config = null;
+    settingsJSON = null;
     stdoutOn = null;
     stderrOn = null;
     execClose = null;
@@ -107,12 +105,8 @@ class ChildProcess {
         shell: '/bin/zsh'
     }) {
         return new Promise(async (resolve) => {
-            const config = await new FsManager().readFile(config_path + '/settings.json', {
-                encoding: 'utf8',
-                flag: 'r',
-                signal: null
-            });
-            options.cwd = JSON.parse(config.data).currentPath;
+            this.settingsJSON = await globalFunctions.getSettingsJSON;
+            options.cwd = this.settingsJSON.current_path;
             this.controller = new AbortController();
             const { signal } = this.controller;
             options.signal = options.signal ? options.signal : signal;
@@ -234,13 +228,7 @@ class ChildProcess {
                 });
             }
             if (paths.length > 0) {
-                this.config = await new FsManager().readFile(config_path + '/settings.json', {
-                    encoding: 'utf8',
-                    flag: 'r',
-                    signal: null
-                }).then((d) => {
-                    return JSON.parse(d.data);
-                });
+                this.settingsJSON = await globalFunctions.getSettingsJSON;
                 for await (let path of paths) {
                     let replace = path.trim().replace('cd ', '').trim();
                     if (replace[replace.length - 1] === '/') {
@@ -250,23 +238,23 @@ class ChildProcess {
                     await split.reduce((lastPromise, s, currentIndex, array) => {
                         return lastPromise.then(async () => {
                             if (s === '') {
-                                this.config.currentPath = split.join('/');
-                                await new FsManager().writeFile(this.config_path + '/settings.json', JSON.stringify(this.config));
+                                this.settingsJSON.currentPath = split.join('/');
+                                globalFunctions.setSettingsJSON = this.settingsJSON;
                             } else if (s === '..') {
-                                this.config.currentPath = '/' + this.config.currentPath.split('/').slice(1, this.config.currentPath.split('/').length - 1).join('/');
-                                await new FsManager().writeFile(this.config_path + '/settings.json', JSON.stringify(this.config));
+                                this.settingsJSON.currentPath = '/' + this.settingsJSON.currentPath.split('/').slice(1, this.settingsJSON.currentPath.split('/').length - 1).join('/');
+                                globalFunctions.setSettingsJSON = this.settingsJSON;
                             } else if (s === '~') {
-                                this.config.currentPath = app.getPath('home');
-                                await new FsManager().writeFile(this.config_path + '/settings.json', JSON.stringify(this.config));
+                                this.settingsJSON.currentPath = app.getPath('home');
+                                globalFunctions.setSettingsJSON = this.settingsJSON;
                             } else {
-                                const currentDir = await new FsManager().readDir(this.config.currentPath);
+                                const currentDir = await new FsManager().readDir(this.settingsJSON.currentPath);
                                 const findIndex = currentDir.data.findIndex((o) => o.name.trim() === s.trim());
                                 if (findIndex !== -1 && currentDir.data[findIndex].isDirectory) {
-                                    this.config.currentPath = this.config.currentPath + '/' + s;
-                                    await new FsManager().writeFile(this.config_path + '/settings.json', JSON.stringify(this.config));
+                                    this.settingsJSON.currentPath = this.settingsJSON.currentPath + '/' + s;
+                                    globalFunctions.setSettingsJSON = this.settingsJSON;
                                 }
                             }
-                            return resolve(this.config.currentPath);
+                            return resolve(this.settingsJSON.currentPath);
                         });
                     }, Promise.resolve()).finally(async () => {
                         mainWindow.webContents.send('command:listen', {
@@ -275,14 +263,8 @@ class ChildProcess {
                     });
                 }
             } else {
-                this.config = await new FsManager().readFile(config_path + '/settings.json', {
-                    encoding: 'utf8',
-                    flag: 'r',
-                    signal: null
-                }).then((d) => {
-                    return JSON.parse(d.data);
-                });
-                return resolve(this.config.currentPath);
+                this.settingsJSON = await globalFunctions.getSettingsJSON;
+                return resolve(this.settingsJSON.currentPath);
             }
         });
     }

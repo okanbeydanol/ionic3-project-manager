@@ -5,6 +5,7 @@ const path = require('path');
 const { PackageJsonManager } = require('./package_json_control');
 const { EnvironmentManager } = require('./environment-manager');
 const { SdkManager } = require('./sdk-manager');
+const { globalFunctions } = require('./global-shared');
 const config_path = path.join(__dirname, '../config');
 
 class AndroidCleaner {
@@ -18,6 +19,7 @@ class AndroidCleaner {
         error: 'error',
         info: 'info'
     };
+    settingsJSON = null;
 
     constructor() {
     }
@@ -32,38 +34,32 @@ class AndroidCleaner {
             if (environmentCheck.error) {
                 return resolve(environmentCheck);
             }
-            /*    if (command.includes('node_modules')) {
-                       const refreshNodeModules = await this.refresh_only_node_modules(mainWindow);
-                       if (refreshNodeModules.error) {
-                           return resolve(refreshNodeModules);
-                       }
-                       console.log('%c refreshNodeModules', 'background: #222; color: #bada55', refreshNodeModules);
-                   }
-                   if (command.includes('prepare')) {
-                       const refreshAndroid = await this.refresh_only_android(mainWindow);
-                       if (refreshAndroid.error) {
-                           return resolve(refreshAndroid);
-                       }
-                       console.log('%c refreshAndroid', 'background: #222; color: #bada55', refreshAndroid);
-                   }*/
+            if (command.includes('node_modules')) {
+                const refreshNodeModules = await this.refresh_only_node_modules(mainWindow);
+                if (refreshNodeModules.error) {
+                    return resolve(refreshNodeModules);
+                }
+                console.log('%c refreshNodeModules', 'background: #222; color: #bada55', refreshNodeModules);
+            }
+            if (command.includes('prepare')) {
+                const refreshAndroid = await this.refresh_only_android(mainWindow);
+                if (refreshAndroid.error) {
+                    return resolve(refreshAndroid);
+                }
+                console.log('%c refreshAndroid', 'background: #222; color: #bada55', refreshAndroid);
+            }
         });
     }
 
     async refresh_only_node_modules(mainWindow) {
         return new Promise(async (resolve) => {
-            this.config = await new FsManager().readFile(config_path + '/settings.json', {
-                encoding: 'utf8',
-                flag: 'r',
-                signal: null
-            }).then((d) => {
-                return JSON.parse(d.data);
-            });
+            this.settingsJSON = await globalFunctions.getSettingsJSON;
             await this.sendListen(mainWindow, 'Deleting the www folder!', this.consoleType.info);
-            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.WWW);
+            await this.remove_folder_if_exist(this.settingsJSON.project_path + '/' + this.settingsJSON.folders.WWW);
             await this.sendListen(mainWindow, 'Deleting the node_modules folder!', this.consoleType.info);
-            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.NODE_MODULES);
+            await this.remove_folder_if_exist(this.settingsJSON.project_path + '/' + this.settingsJSON.folders.NODE_MODULES);
             await this.sendListen(mainWindow, 'Deleting the package_lock.json folder!', this.consoleType.info);
-            await this.remove_file_if_exist(this.config.project_path + '/' + this.config.folders.PACKAGE_LOCK_JSON);
+            await this.remove_file_if_exist(this.settingsJSON.project_path + '/' + this.settingsJSON.folders.PACKAGE_LOCK_JSON);
 
             await this.sendListen(mainWindow, 'Npm Cache is verifying!', this.consoleType.info);
             const npmCacheVerify = await this.childManager.executeCommand(
@@ -88,7 +84,7 @@ class AndroidCleaner {
             }
 
             await this.sendListen(mainWindow, '--------BEFORE BUILD NODE MODULES FIXES----------', this.consoleType.info);
-            const editFiles = await this.editFiles(mainWindow, 'before_build', 'node_modules', this.config.project_path);
+            const editFiles = await this.editFiles(mainWindow, 'before_build', 'node_modules', this.settingsJSON.project_path);
             if (editFiles.error) {
                 return resolve(editFiles);
             }
@@ -102,19 +98,15 @@ class AndroidCleaner {
 
     async refresh_only_android(mainWindow) {
         return new Promise(async (resolve) => {
-            this.config = await new FsManager().readFile(config_path + '/settings.json', {
-                encoding: 'utf8',
-                flag: 'r',
-                signal: null
-            }).then((d) => {
-                return JSON.parse(d.data);
-            });
+            this.settingsJSON = await globalFunctions.getSettingsJSON;
             await this.sendListen(mainWindow, 'Deleting the www folder!', this.consoleType.info);
-            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.WWW);
+            await this.remove_folder_if_exist(this.settingsJSON.project_path + '/' + this.settingsJSON.folders.WWW);
             await this.sendListen(mainWindow, 'Deleting the plugins folder!', this.consoleType.info);
-            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.PLUGINS);
+            await this.remove_folder_if_exist(this.settingsJSON.project_path + '/' + this.settingsJSON.folders.PLUGINS);
             await this.sendListen(mainWindow, 'Deleting the android folder!', this.consoleType.info);
-            await this.remove_folder_if_exist(this.config.project_path + '/' + this.config.folders.ANDROID);
+            await this.remove_folder_if_exist(this.settingsJSON.project_path + '/' + this.settingsJSON.folders.ANDROID);
+            await this.sendListen(mainWindow, 'Deleting the ios folder!', this.consoleType.info);
+            await this.remove_folder_if_exist(this.settingsJSON.project_path + '/' + this.settingsJSON.folders.IOS);
 
             await this.CordovaManager.fixMacOsReleaseName(mainWindow, false);
 
@@ -194,7 +186,7 @@ class AndroidCleaner {
             }
 
             await this.sendListen(mainWindow, '--------BEFORE BUILD ANDROID FIXES----------', this.consoleType.info);
-            const editFilesBefore = await this.editFiles(mainWindow, 'before_build', 'platforms/android', this.config.project_path);
+            const editFilesBefore = await this.editFiles(mainWindow, 'before_build', 'platforms/android', this.settingsJSON.project_path);
             if (editFilesBefore.error) {
                 return resolve(editFilesBefore);
             }
@@ -213,7 +205,7 @@ class AndroidCleaner {
             }
 
             await this.sendListen(mainWindow, '--------AFTER BUILD ANDROID FIXES----------', this.consoleType.info);
-            const editFilesAfter = await this.editFiles(mainWindow, 'after_build', 'platforms/android', this.config.project_path);
+            const editFilesAfter = await this.editFiles(mainWindow, 'after_build', 'platforms/android', this.settingsJSON.project_path);
             if (editFilesAfter.error) {
                 return resolve(editFilesAfter);
             }

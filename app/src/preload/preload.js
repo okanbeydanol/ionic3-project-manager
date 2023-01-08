@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('projectDetail', {
     currentPath: () => ipcRenderer.invoke('projectDetail:currentPath'),
     startAndroidCleanerPreload: (value) => ipcRenderer.invoke('projectDetail:startAndroidCleaner', value),
     setPasswordDialog: (value) => ipcRenderer.invoke('projectDetail:setPasswordDialog', value),
+    startReadAdvance: () => ipcRenderer.invoke('projectDetail:startReadAdvance'),
 
 });
 contextBridge.exposeInMainWorld('terminalDetail', {

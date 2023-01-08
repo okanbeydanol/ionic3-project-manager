@@ -2,10 +2,9 @@ const { ChildProcess } = require('./child_process');
 const os = require('os');
 const { getOSInfo } = require('get-os-info');
 const { FsManager } = require('./fs-manager');
-const path = require('path');
+const { globalFunctions } = require('./global-shared');
 
 class CordovaManager {
-    config_path = path.join(__dirname, '../config');
     system_type = { mac: false, windows: false, linux: false };
     system_info = { name: null, version: null };
     osPlatform = os.platform();
@@ -116,13 +115,8 @@ class CordovaManager {
                 const join = slice.join('/');
                 macOsReleasePath = join + '/lib/node_modules/cordova/node_modules/macos-release/index.js';
             } else {
-                const settings = await new FsManager().readFile(this.config_path + '/settings.json', {
-                    encoding: 'utf8',
-                    flag: 'r',
-                    signal: null
-                });
-                this.config = JSON.parse(settings.data);
-                macOsReleasePath = this.config.project_path + '/node_modules/macos-release/index.js';
+                this.settingsJSON = await globalFunctions.getSettingsJSON;
+                macOsReleasePath = this.settingsJSON.project_path + '/node_modules/macos-release/index.js';
             }
             let indexJs = await new FsManager().readFile(macOsReleasePath, { encoding: 'utf8' });
             if (indexJs.error) {

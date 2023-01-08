@@ -1,27 +1,22 @@
-const {FsManager} = require('./fs-manager');
-const path = require('path');
+const { FsManager } = require('./fs-manager');
+const { globalFunctions } = require('./global-shared');
 
 class PackageJsonManager {
-    config_path = path.join(__dirname, '../config');
-    config = null;
-    package_json = null;
+    settingsJSON = null;
     package_json_dependencies = null;
     package_json_devDependencies = null;
     node_modules_dirs = null;
     plugins_dirs = null;
+    androidHooks = null;
+    iosHooks = null;
 
     constructor() {
     }
 
     async init() {
         return new Promise(async (resolve) => {
-            const settings = await new FsManager().readFile(this.config_path + '/settings.json', {
-                encoding: 'utf8',
-                flag: 'r',
-                signal: null
-            });
-            this.config = JSON.parse(settings.data);
-            const packageJson = await new FsManager().readFile(this.config.project_path + '/package.json', {
+            this.settingsJSON = await globalFunctions.getSettingsJSON;
+            const packageJson = await new FsManager().readFile(this.settingsJSON.project_path + '/package.json', {
                 encoding: 'utf8',
                 flag: 'r',
                 signal: null
@@ -31,13 +26,13 @@ class PackageJsonManager {
                 this.package_json_devDependencies = JSON.parse(packageJson.data).devDependencies;
             }
 
-            const node_modules = await new FsManager().readDir(this.config.project_path + '/node_modules');
-            const plugins = await new FsManager().readDir(this.config.project_path + '/plugins');
+            const node_modules = await new FsManager().readDir(this.settingsJSON.project_path + '/node_modules');
+            const plugins = await new FsManager().readDir(this.settingsJSON.project_path + '/plugins');
             this.node_modules_dirs = node_modules.data;
             this.plugins_dirs = plugins.data;
             resolve({
                 data: {
-                    config: this.config,
+                    settingsJSON: this.settingsJSON,
                     package_json_dependencies: this.package_json_dependencies,
                     package_json_devDependencies: this.package_json_devDependencies,
                     node_modules_dirs: this.node_modules_dirs,
@@ -60,10 +55,10 @@ class PackageJsonManager {
     get_package_json_package(plugin_name) {
         let result = false;
         if (this.package_json_devDependencies[plugin_name]) {
-            return {data: this.package_json_devDependencies[plugin_name], error: false};
+            return { data: this.package_json_devDependencies[plugin_name], error: false };
         }
         if (this.package_json_dependencies[plugin_name]) {
-            return {data: this.package_json_dependencies[plugin_name], error: false};
+            return { data: this.package_json_dependencies[plugin_name], error: false };
         }
         return {
             data: this.package_json_dependencies[plugin_name],
@@ -96,4 +91,4 @@ class PackageJsonManager {
     }
 }
 
-module.exports = {PackageJsonManager};
+module.exports = { PackageJsonManager };

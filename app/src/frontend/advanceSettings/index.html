@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advance Settings</title>
+    <meta
+        content="default-src * self blob: data: gap:; style-src * self 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * self 'unsafe-inline' blob: data: gap:; connect-src self * 'unsafe-inline' blob: data: gap:; frame-src * self blob: data: gap:;"
+        http-equiv="Content-Security-Policy">
+    <link href="./styles.css" rel="stylesheet" type="text/css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <script
+        crossorigin="anonymous"
+        integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU="
+        src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script crossorigin="anonymous" src="https://kit.fontawesome.com/82221f9c85.js"></script>
+</head>
+<body>
+<div class="container --hidden" id="container">
+    <div class="fixes-wrapper">
+        <div class="fixes">
+            <div class="header">
+                <label>Node Modules Fixes</label>
+                <i class="fa-solid fa-plus" id="node-modules-add"></i>
+            </div>
+            <div class="fix" id="node-modules-fix">
+
+            </div>
+        </div>
+        <div class="fixes">
+            <div class="header">
+                <label>Android Fixes</label>
+                <i class="fa-solid fa-plus" id="android-add"></i>
+            </div>
+            <div class="fix" id="android-fix">
+
+            </div>
+        </div>
+        <div class="fixes">
+            <div class="header">
+                <label>Ios Fixes</label>
+                <i class="fa-solid fa-plus" id="ios-add"></i>
+            </div>
+            <div class="fix" id="ios-fix">
+
+            </div>
+        </div>
+    </div>
+    <div class="fixes-wrapper">
+        <div class="fixes">
+            <div class="header">
+                <label>Android Hooks</label>
+                <i class="fa-solid fa-plus" id="android-hooks-add"></i>
+            </div>
+            <div class="fix" id="android-hooks-fix">
+
+            </div>
+        </div>
+        <div class="fixes">
+            <div class="header">
+                <label>Ios Hooks</label>
+                <i class="fa-solid fa-plus" id="ios-hooks-add"></i>
+            </div>
+            <div class="fix" id="ios-hooks-fix">
+
+            </div>
+        </div>
+    </div>
+</div>
+<div class="loader-container" id="loader-container">
+    <div class="loader" id="loader"></div>
+</div>
+<div class="modal --hidden" id="modal">
+    <div class="modal_backdrop" id="modal_backdrop"></div>
+    <div class="modal_wrapper" id="modal_wrapper">
+        <div class="modal_content">
+            <div class="header">
+                <label>Add new fix</label>
+                <i class="fa-solid fa-close" id="close-modal"></i>
+            </div>
+
+            <div class="path_wrapper">
+                <label for="package_path">Path(Root folder starts from project
+                    folder. "plugins/,node_modules/")</label><br>
+                <input class="config-input" id="package_path"
+                       placeholder="plugins/com-darryncampbell-cordova-plugin-intent/plugin.xml" type="text">
+            </div>
+            <div class="type_wrapper">
+                <div class="title-header">
+                    <label class="title">Fix Type</label>
+                </div>
+                <div class="fix-type">
+                    <input checked id="add" name="fix_type" type="radio" value="add">
+                    <label class="radio-label" for="add">Add</label>
+                    <input id="remove" name="fix_type" type="radio" value="remove">
+                    <label class="radio-label" for="remove">Remove</label>
+                    <input id="replace" name="fix_type" type="radio" value="replace">
+                    <label class="radio-label" for="replace">Replace</label>
+                </div>
+
+            </div>
+            <div class="type_wrapper">
+                <div class="title-header">
+                    <label class="title">Fix Order</label>
+                </div>
+                <div class="fix-order">
+                    <input checked id="after_build" name="fix-order" type="radio" value="after_build">
+                    <label class="radio-label" for="after_build">After Build</label>
+                    <input id="before_build" name="fix-order" type="radio" value="before_build">
+                    <label class="radio-label" for="before_build">Before Build</label>
+                </div>
+            </div>
+
+            <div class="regex_container">
+                <div class="header">
+                    <label>Add new regex container</label>
+                    <i class="fa-solid fa-plus" id="add-new-regex-container"></i>
+                </div>
+
+                <div class="data_container">
+                    <div class="regex_wrapper">
+                        <label for="package_path">Regex</label><br>
+                        <input class="config-input" id="regex"
+                               placeholder="(Bundle extras = getIntent\(\)\.getExtras\(\))" type="text">
+                    </div>
+                    <div class="regex_data_wrapper">
+                        <label for="package_path">Regex Data</label><br>
+                        <input class="config-input" id="regex_data"
+                               placeholder="Bundle extras = getIntent().getExtras();\n if (extras != null)\n { PushPlugin.sendExtras(extras); intentDone = true;  }"
+                               type="text">
+                    </div>
+                </div>
+            </div>
+            <button class="start-cleaner" id="save-regex" type="button">Save</button>
+
+        </div>
+
+    </div>
+</div>
+<div class="modal --hidden" id="modal2">
+    <div class="modal_backdrop" id="modal_backdrop2"></div>
+    <div class="modal_wrapper" id="modal_wrapper2">
+        <div class="modal_content">
+            <div class="header">
+                <label>Add new fix</label>
+                <i class="fa-solid fa-close" id="close-modal2"></i>
+            </div>
+
+            <div class="path_wrapper">
+                <label for="package_path">Path(Root folder starts from project
+                    folder. "scripts/,plugins/")</label><br>
+                <input class="config-input" id="package_path2"
+                       placeholder="scripts/remove_permissions.js" type="text">
+            </div>
+            <div class="type_wrapper">
+                <div class="title-header">
+                    <label class="title" for="server">Fix Order</label>
+                </div>
+
+                <select id="server" name="server" style="width: 100%">
+                    <option value="after_platform_add">after_platform_add</option>
+                    <option value="before_platform_add">before_platform_add</option>
+                    <option value="before_platform_rm">before_platform_rm</option>
+                    <option value="after_platform_rm">after_platform_rm</option>
+                    <option value="before_platform_ls">before_platform_ls</option>
+                    <option value="after_platform_ls">after_platform_ls</option>
+                    <option value="before_prepare">before_prepare</option>
+                    <option value="after_prepare">after_prepare</option>
+                    <option value="before_compile">before_compile</option>
+                    <option value="after_compile">after_compile</option>
+                    <option value="before_deploy">before_deploy</option>
+                    <option value="before_build">before_build</option>
+                    <option value="after_build">after_build</option>
+                    <option value="before_emulate">before_emulate</option>
+                    <option value="after_emulate">after_emulate</option>
+                    <option value="before_run">before_run</option>
+                    <option value="after_run">after_run</option>
+                    <option value="before_serve">before_serve</option>
+                    <option value="after_serve">after_serve</option>
+                    <option value="before_clean">before_clean</option>
+                    <option value="after_clean">after_clean</option>
+                    <option value="before_plugin_add">before_plugin_add</option>
+                    <option value="after_plugin_add">after_plugin_add</option>
+                    <option value="before_plugin_rm">before_plugin_rm</option>
+                    <option value="after_plugin_rm">after_plugin_rm</option>
+                    <option value="before_plugin_ls">before_plugin_ls</option>
+                    <option value="after_plugin_ls">after_plugin_ls</option>
+                    <option value="before_plugin_install">before_plugin_install</option>
+                    <option value="after_plugin_install">after_plugin_install</option>
+                    <option value="before_plugin_uninstall">before_plugin_uninstall</option>
+                </select>
+            </div>
+            <div class="type_wrapper">
+                <div class="title-header">
+                    <label class="title" for="server">Script</label>
+                </div>
+                <textarea class="config-input" cols="50" placeholder="module.exports = async function (context) {
+    const manifestPath = './platforms/android/app/src/main/AndroidManifest.xml';
+    const fs = require('fs/promises');
+    const xml2js = require('xml2js');
+    const manifestXml = await fs.readFile(manifestPath);
+    const manifest = await xml2js.parseStringPromise(manifestXml, null);
+    if (Array.isArray(manifest.manifest.application[0].activity)) {
+        manifest.manifest.application[0].activity.map(activity => {
+            const attrs = activity.$ || {};
+            const windowSoftInputMode = attrs['android:windowSoftInputMode']; // Assuming xmlns:android has been set as usual...
+            if (windowSoftInputMode && windowSoftInputMode !== 'adjustPan') {
+                activity.$['android:windowSoftInputMode'] = 'adjustPan';
+            }
+        });
+        const newManifest = (new xml2js.Builder({})).buildObject(manifest);
+        await fs.writeFile(manifestPath, newManifest);
+    }
+};
+"
+                          style="height: 294px !important;    padding: 16px !important;" type="text"></textarea>
+            </div>
+
+            <button class="start-cleaner" id="save-regex2" type="button">Save</button>
+        </div>
+
+    </div>
+</div>
+
+</body>
+<script src="../../renderer/renderer-advance-settings.js"></script>
+</html>
