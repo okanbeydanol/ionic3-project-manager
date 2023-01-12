@@ -742,6 +742,29 @@ export PATH=$PATH:$ANDROID_SDK_ROOT/system-images/${ systemImages.android }/${ s
         });
     }
 
+    async getAndroidAvailableEmulatorList(mainWindow) {
+        return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Checking android available emulator list!', this.consoleType.info);
+            const androidAvailableEmulatorList = await this.childManager.executeCommand(
+                mainWindow,
+                'emulator -list-avds',
+                null,
+                'When try to get available emulator list. Something get wrong!', () => {
+                }, {
+                    command: true,
+                    liveOutput: false,
+                    endOutput: false,
+                    endError: true,
+                    info: true
+                }
+            );
+            if (androidAvailableEmulatorList.error) {
+                return resolve(androidAvailableEmulatorList);
+            }
+            const split = androidAvailableEmulatorList.data.split('\n');
+            return resolve({ error: false, data: split.length > 0 ? split : [] });
+        });
+    }
 
     async brewInstallAndroidSdk(mainWindow) {
         return new Promise(async (resolve) => {

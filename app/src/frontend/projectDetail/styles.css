@@ -89,6 +89,15 @@ span {
     font-size: 14px;
 }
 
+htmlbuttonelement {
+    display: flex !important;
+}
+
+any {
+    display: flex !important;
+
+}
+
 .extra-container {
     margin-bottom: 8px;
     position: absolute;

@@ -25,3 +25,8 @@ contextBridge.exposeInMainWorld('projectSettings', {
     installBuildToolsSettings: (value) => ipcRenderer.invoke('projectDetail:installBuildToolsSettings', value),
     installPlatformsSettings: (value) => ipcRenderer.invoke('projectDetail:installPlatformsSettings', value)
 });
+contextBridge.exposeInMainWorld('deployForTestDetail', {
+    startReadDevices: (value) => ipcRenderer.invoke('deployForTestDetail:startReadDevices', value),
+    startIosDevice: (value) => ipcRenderer.invoke('deployForTestDetail:startIosDevice', value),
+    killAllPorts: (value) => ipcRenderer.invoke('deployForTestDetail:killAllPorts', value),
+});

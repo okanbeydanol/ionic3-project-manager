@@ -1,6 +1,7 @@
 const { FsManager } = require('./fs-manager');
 const path = require('path');
 const xml2js = require('xml2js');
+const { networkInterfaces } = require('os');
 const config_path = path.join(__dirname, '../config');
 const fsManager = new FsManager();
 const globalFunctions = {
@@ -289,6 +290,37 @@ const globalFunctions = {
             configXML.widget.platform[iosPlatformIndex].hook = value;
             await writeConfigXMLJson(configXML);
         })();
+    },
+    get getContent() {
+        return (async () => {
+            const configXML = await this.configXML;
+            return configXML.widget.content;
+        })();
+    },
+    set setContent(value) {
+        return (async () => {
+            const configXML = await this.configXML;
+            configXML.widget.content = value;
+            await writeConfigXMLJson(configXML);
+        })();
+    },
+    get getNavigations() {
+        return (async () => {
+            const configXML = await this.configXML;
+            return configXML.widget['allow-navigation'];
+        })();
+    },
+    set setNavigations(value) {
+        return (async () => {
+            const configXML = await this.configXML;
+            configXML.widget['allow-navigation'] = value;
+            await writeConfigXMLJson(configXML);
+        })();
+    },
+    get getIpAddress() {
+        return (async () => {
+            return getIpAddress();
+        })();
     }
 };
 
@@ -315,6 +347,25 @@ async function readConfigXMLJson() {
         const parser = new xml2js.Parser({ includeWhiteChars: true });
         return await parser.parseStringPromise(config.data);
     });
+}
+
+async function getIpAddress() {
+    const nets = networkInterfaces();
+    const results = Object.create(null); // Or just '{}', an empty object
+    for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+            // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
+            // 'IPv4' is in Node <= 17, from 18 it's a number 4 or 6
+            const familyV4Value = typeof net.family === 'string' ? 'IPv4' : 4;
+            if (net.family === familyV4Value && !net.internal) {
+                if (!results[name]) {
+                    results[name] = [];
+                }
+                results[name].push(net.address);
+            }
+        }
+    }
+    return results['en0'];
 }
 
 async function writeConfigXMLJson(value) {

@@ -151,7 +151,7 @@ class ChildProcess {
             this.stdoutOn = this.childProcessExec.stdout.on('data', async (data) => {
                 const dat = await this.coloredTerminal(data);
                 callback({
-                    data: dat.join('\n').trimStart(),
+                    data: dat.join('\n'),
                     error: false,
                     signal: options.signal,
                     type: 'stdout'
@@ -165,7 +165,7 @@ class ChildProcess {
             this.stderrOn = this.childProcessExec.stderr.on('data', async (data) => {
                 const dat = await this.coloredTerminal(data);
                 callback({
-                    data: dat.join('\n').trimStart(),
+                    data: dat.join('\n'),
                     error: false,
                     signal: options.signal,
                     type: 'stderr'
@@ -192,80 +192,69 @@ class ChildProcess {
     }
 
     async coloredTerminal(data) {
-        return new Promise((resolve) => {
-            const split = data.trimStart().split('\n');
-            const dat = [];
-            split.map((s) => {
-                const regexFind = /(\/*\[[0-1];[0-9][0-9]m\/*)/g.exec(s.trimStart());
-                if (regexFind) {
-                    const find = this.colors.find(o => o.code === regexFind[0]);
-                    if (find) {
-                        dat.push('<label id="color-label" style="color:' + find.color + '">' + s.replace(/(\/*\[[0-1];[0-9][0-9]m\/*)/g, '').replace(/(\/*\[[0-1]m\/*)/g, '').trimStart() + '</label>');
-                    } else {
-                        dat.push('<label id="color-label" style="color:#a39f9f">' + s.replace(/(\/*\[[0-1];[0-9][0-9]m\/*)/g, '').replace(/(\/*\[[0-1]m\/*)/g, '').trimStart() + '</label>');
-                    }
-                } else {
-                    dat.push('<label id="color-label-no-color" style="color:#a39f9f">' + s.trimStart() + '</label>');
-                }
-            });
-            return resolve(dat);
-        });
-    }
-
-    async checkCommand(command, mainWindow) {
         return new Promise(async (resolve) => {
-            const cdRegex = /((cd +~[^&]+))|((cd +~))|((cd +.[(\/\S+)][^&]+))|((cd +[.][.][(\/\w+)]+))|((cd [(\/\w+)]+))|((cd [(\/\w+)]+))|((cd +[.][.]))/g;
-            let m;
-            const paths = [];
-            while ((m = cdRegex.exec(command.trimStart())) !== null) {
-                if (m.index === cdRegex.lastIndex) {
-                    cdRegex.lastIndex++;
-                }
-                m.forEach((match, groupIndex) => {
-                    if (match && !paths.find(o => o === match)) {
-                        paths.push(match);
+            const split = data.replace(/ /g, '&nbsp;').split(/\n/g);
+            let coloredText = '';
+            const dat = [];
+            await split.reduce((lastPromise, s, currentIndex, array) => {
+                return lastPromise.then(async () => {
+                    let cloneS = s;
+                    let text = '';
+                    let t = '';
+                    const regex = /(\[[0-9][0-9]?m)(?<=\[[0-9][0-9]?m)[\ \.\[\]\:\/\,\&\;\(\)\#\$\}\{\_\+\*\?\%\^\=\-a-zA-Z0-9]+(?=\[[0-9][0-9]?m)(\[[0-9][0-9]?m)/g;
+                    let m;
+                    regex.lastIndex = 0;
+                    await (async () => {
+                        while ((m = regex.exec(s)) !== null) {
+                            if (m.index === regex.lastIndex) {
+                                regex.lastIndex++;
+                            }
+                            m.forEach((match, groupIndex) => {
+                                if (groupIndex === 0) {
+                                    text = text.replace(match, '');
+                                    coloredText = match;
+                                    t = match;
+                                } else if (groupIndex === 1) {
+                                    if (match === '[33m') {
+                                        coloredText = coloredText.replace(match, `<div style="color:#b28122!important;">`);
+                                    } else if (match === '[2m') {
+                                        coloredText = coloredText.replace(match, `<div style="color:#837a65!important;">`);
+                                    } else if (match === '[41m') {
+                                        coloredText = coloredText.replace(match, `<div style="color:#9c937a!important;background: #cc241c!important;height: 18px;">`);
+                                    } else {
+                                        coloredText = coloredText.replace(match, `<div style="color:#9c937a!important;">`);
+                                    }
+                                } else if (groupIndex === 2) {
+                                    if (match === '[39m') {
+                                        coloredText = coloredText.replace(match, `</div>`);
+                                    } else if (match === '[22m') {
+                                        coloredText = coloredText.replace(match, '</div>');
+                                    } else if (match === '[49m') {
+                                        coloredText = coloredText.replace(match, '</div>');
+                                    } else {
+                                        coloredText = coloredText.replace(match, '</div>');
+                                    }
+                                }
+                            });
+                            cloneS = cloneS.replace(t, coloredText);
+                        }
+                    })();
+                    cloneS = `<div style="display: flex!important;">${ cloneS }</div>`;
+                    const regexFind = /(\/*\[[0-1];[0-9][0-9]m\/*)/g.exec(cloneS);
+                    if (regexFind) {
+                        const find = this.colors.find(o => o.code === regexFind[0]);
+                        if (find) {
+                            dat.push('<label id="color-label" style="color:' + find.color + '">' + cloneS.replace(/(\/*\[[0-1];[0-9][0-9]m\/*)/g, '').replace(/(\/*\[[0-1]m\/*)/g, '') + '</label>');
+                        } else {
+                            dat.push('<label id="color-label" style="color:#a39f9f">' + cloneS.replace(/(\/*\[[0-1];[0-9][0-9]m\/*)/g, '').replace(/(\/*\[[0-1]m\/*)/g, '') + '</label>');
+                        }
+                    } else {
+                        dat.push('<label id="color-label-no-color" style="color:#a39f9f">' + cloneS + '</label>');
                     }
                 });
-            }
-            if (paths.length > 0) {
-                this.settingsJSON = await globalFunctions.getSettingsJSON;
-                for await (let path of paths) {
-                    let replace = path.trim().replace('cd ', '').trim();
-                    if (replace[replace.length - 1] === '/') {
-                        replace = replace.slice(0, replace.length - 2);
-                    }
-                    const split = replace.split('/');
-                    await split.reduce((lastPromise, s, currentIndex, array) => {
-                        return lastPromise.then(async () => {
-                            if (s === '') {
-                                this.settingsJSON.currentPath = split.join('/');
-                                globalFunctions.setSettingsJSON = this.settingsJSON;
-                            } else if (s === '..') {
-                                this.settingsJSON.currentPath = '/' + this.settingsJSON.currentPath.split('/').slice(1, this.settingsJSON.currentPath.split('/').length - 1).join('/');
-                                globalFunctions.setSettingsJSON = this.settingsJSON;
-                            } else if (s === '~') {
-                                this.settingsJSON.currentPath = app.getPath('home');
-                                globalFunctions.setSettingsJSON = this.settingsJSON;
-                            } else {
-                                const currentDir = await new FsManager().readDir(this.settingsJSON.currentPath);
-                                const findIndex = currentDir.data.findIndex((o) => o.name.trim() === s.trim());
-                                if (findIndex !== -1 && currentDir.data[findIndex].isDirectory) {
-                                    this.settingsJSON.currentPath = this.settingsJSON.currentPath + '/' + s;
-                                    globalFunctions.setSettingsJSON = this.settingsJSON;
-                                }
-                            }
-                            return resolve(this.settingsJSON.currentPath);
-                        });
-                    }, Promise.resolve()).finally(async () => {
-                        mainWindow.webContents.send('command:listen', {
-                            type: 'folder_change'
-                        });
-                    });
-                }
-            } else {
-                this.settingsJSON = await globalFunctions.getSettingsJSON;
-                return resolve(this.settingsJSON.currentPath);
-            }
+            }, Promise.resolve()).finally(async () => {
+                return resolve(dat);
+            });
         });
     }
 
@@ -301,56 +290,61 @@ class ChildProcess {
                         data: false,
                         error: true,
                         type: 'error:end',
-                        message: event.message
+                        message: event.message,
+                        signal: event.signal
                     });
                 }
 
                 if (event.type === 'stdout') {
                     if (print.liveOutput) {
-                        await this.sendListen(mainWindow, event.data.trim(), this.consoleType.output, true);
+                        await this.sendListen(mainWindow, event.data, this.consoleType.output, true);
                     }
                     callback({
-                        data: event.data.trim(),
+                        data: event.data,
                         error: false,
-                        type: 'stdout'
+                        type: 'stdout',
+                        signal: event.signal
                     });
                 }
 
                 if (event.type === 'stderr') {
                     if (print.liveOutput) {
-                        await this.sendListen(mainWindow, event.data.trim(), this.consoleType.output, true);
+                        await this.sendListen(mainWindow, event.data, this.consoleType.output, true);
                     }
                     callback({
-                        data: event.data.trim(),
+                        data: event.data,
                         error: false,
-                        type: 'stderr'
+                        type: 'stderr',
+                        signal: event.signal
                     });
                 }
 
                 if (event.type === 'stdout:end') {
-                    let text = event.data.trim();
+                    let text = event.data;
                     outputs.stdoutEnd = text;
                     if (print.endOutput && text.length < 780) {
                         await this.sendListen(mainWindow, text, this.consoleType.output, true);
                     }
 
                     callback({
-                        data: event.data.trim(),
+                        data: event.data,
                         error: false,
-                        type: 'stdout:end'
+                        type: 'stdout:end',
+                        signal: event.signal
                     });
                 }
 
                 if (event.type === 'stderr:end') {
-                    let text = event.data.trim();
+                    let text = event.data;
                     outputs.stderrEnd = text;
                     if (print.endOutput && text.length < 780) {
                         await this.sendListen(mainWindow, text, this.consoleType.output, true);
                     }
                     callback({
-                        data: event.data.trim(),
+                        data: event.data,
                         error: false,
-                        type: 'stderr:end'
+                        type: 'stderr:end',
+                        signal: event.signal
                     });
                 }
                 if (event.type === 'close') {
@@ -363,7 +357,12 @@ class ChildProcess {
                         data = outputs.stderrEnd;
                     }
 
-                    return resolve({ error: outputs.error, data: data, message: outputs.errorEnd });
+                    return resolve({
+                        error: outputs.error,
+                        data: data,
+                        message: outputs.errorEnd,
+                        signal: event.signal
+                    });
                 }
             }, mainWindow);
         });

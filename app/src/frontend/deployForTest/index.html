@@ -2,36 +2,66 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Deploy to Test</title>
+    <title>Run for Test</title>
     <meta
-            content="default-src * self blob: data: gap:; style-src * self 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * self 'unsafe-inline' blob: data: gap:; connect-src self * 'unsafe-inline' blob: data: gap:; frame-src * self blob: data: gap:;"
-            http-equiv="Content-Security-Policy">
+        content="default-src * self blob: data: gap:; style-src * self 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * self 'unsafe-inline' blob: data: gap:; connect-src self * 'unsafe-inline' blob: data: gap:; frame-src * self blob: data: gap:;"
+        http-equiv="Content-Security-Policy">
     <link href="./styles.css" rel="stylesheet" type="text/css">
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <script
-            crossorigin="anonymous"
-            integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU="
-            src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
+        crossorigin="anonymous"
+        integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU="
+        src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script crossorigin="anonymous" src="https://kit.fontawesome.com/82221f9c85.js"></script>
 </head>
 <body>
-<div class="container">
+<div class="container --hidden" id="container">
     <div class="extra-container">
+        <label style="padding: 6px 0 0 32px;font-size: 18px;">Android Options</label>
+        <div class="options_container" style="display: flex;padding: 6px 0 0 34px;">
+            <input checked id="live_reload_android" name="live_reload_android" type="checkbox"
+                   value="live_reload_android">
+            <label class="radio-label" for="live_reload_android" style="margin-right: 16px;">live Reload</label>
+            <input checked id="uninstall_first_android" name="uninstall_first_android" type="checkbox"
+                   value="uninstall_first_android">
+            <label class="radio-label" for="uninstall_first_android">Uninstall First</label>
+        </div>
+
         <div class="select-wrapper">
             <div class="server-select">
-                <label for="server">Server</label>
-                <select id="server" name="server" style="width: 100%">
-                    <option value="dev">Development</option>
-                    <option value="stg">Staging</option>
-                    <option value="prod">Production</option>
+                <label for="android-devices">Android Devices</label>
+                <select id="android-devices" name="android-devices" style="width: 100%">
+                    <option value="0">Please Choose a android devices.</option>
                 </select>
+
             </div>
-            <div class="branches-select">
-                <label for="branches">Branches</label>
-                <select id="branches" name="branches">
-                    <option value="0">Please Choose a branch.</option>
+            <i class="fa-solid fa-play" id="play-android-device" style="margin-top: 22px;color: green;"></i>
+            <i class="fa-solid fa-stop --hidden" id="stop-android-device" style="margin-top: 22px;color: red;"></i>
+            <i class="fa-solid fa-spinner --hidden" id="loader-android-device"
+               style="margin-top: 22px;color: dimgrey;"></i>
+
+        </div>
+        <label style="padding: 6px 0 0 32px;font-size: 18px;">Ios Options</label>
+        <div class="options_container" style="display: flex;padding: 6px 0 0 34px;">
+            <input checked id="live_reload_ios" name="live_reload_ios" type="checkbox" value="live_reload_ios">
+            <label class="radio-label" for="live_reload_ios" style="margin-right: 16px;">live Reload</label>
+            <input checked id="uninstall_first_ios" name="uninstall_first_ios" type="checkbox"
+                   value="uninstall_first_ios">
+            <label class="radio-label" for="uninstall_first_ios">Uninstall First</label>
+        </div>
+        <div class="select-wrapper">
+            <div class="server-select">
+                <label for="ios-devices">Ios Devices</label>
+                <select id="ios-devices" name="ios-devices" style="width: 100%">
+                    <option value="0">Please Choose a ios devices.</option>
                 </select>
+
             </div>
+            <i class="fa-solid fa-play" id="play-ios-device" style="margin-top: 22px;color: green;"></i>
+            <i class="fa-solid fa-stop --hidden" id="stop-ios-device" style="margin-top: 22px;color: red;"></i>
+            <i class="fa-solid fa-spinner --hidden" id="loader-ios-device" style="margin-top: 22px;color: dimgrey;"></i>
+
         </div>
     </div>
 </div>

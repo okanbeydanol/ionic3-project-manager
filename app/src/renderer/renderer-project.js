@@ -13,11 +13,10 @@ const consoleType = {
 let scroll = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
-
-
-    window.terminalDetail.listenCommandNode((ev, value) => {
-        console.log('%c ev', 'background: #222; color: #bada55', ev);
-        console.log('%c value', 'background: #222; color: #bada55', value);
+    window.terminalDetail.listenCommandNode(async (ev, value) => {
+        if (terminal.children.length > 200) {
+            await spliceChildNodes(terminal, 0, 120);
+        }
         if (value.type === consoleType.command) {
             const span = document.createElement('span');
             span.setAttribute('style', 'display: block;color: #976262;');
@@ -45,12 +44,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (value.type === 'folder_change') {
             command_input_label.innerText = value.data;
         }
-        console.log('%c scroll', 'background: #222; color: #bada55', scroll);
 
-        if (!scroll) {
-            terminal.scrollTo(0, terminal.scrollHeight);
-        }
+        setTimeout(() => {
+            if (!scroll) {
+                terminal.scrollTo(0, terminal.scrollHeight);
+            }
+        }, 10);
     });
+
+    function spliceChildNodes(parent, start, deleteCount /*[, newNode1, newNode2]*/) {
+        const childNodes = parent.childNodes;
+        const removedNodes = [];
+
+        // If `start` is negative, begin that many nodes from the end
+        start = start < 0 ? childNodes.length + start : start;
+
+        // remove the element at index `start` `deleteCount` times
+        const stop = typeof deleteCount === 'number' ? start + deleteCount : childNodes.length;
+        for (let i = start; i < stop && childNodes[start]; i++) {
+            removedNodes.push(parent.removeChild(childNodes[start]));
+        }
+
+        // add new nodes at index `start`
+        if (arguments.length > 3) {
+            const newNodes = [].slice.call(arguments, 3);
+
+            // stick nodes in a document fragment
+            const docFrag = document.createDocumentFragment();
+            newNodes.forEach(function (el) {
+                docFrag.appendChild(el);
+            });
+
+            // place in `parent` at index `start`
+            parent.insertBefore(docFrag, childNodes[start]);
+        }
+
+        return removedNodes;
+    }
+
     const getCommand = async () => {
         const type = [];
         const target = [];
@@ -105,8 +136,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return { type: type, target: target };
 
     };
-    console.log('%c cleanType', 'background: #222; color: #bada55', cleanType);
-
     Array.from(cleanType).map((t) => {
         t.addEventListener('click', async (ev) => {
             if (t.classList.contains('clean-type--active')) {
@@ -117,7 +146,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 t.children[1].classList.remove('clean-type-img--active');
             }
             const command = await getCommand();
-            console.log('%c command', 'background: #222; color: #bada55', command);
             if (command.type.length + command.target.length === 0) {
                 commandInput.value = 'npm run cleaning';
             } else {
@@ -132,20 +160,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    const currentPath = await window.projectDetail.currentPath();
-    command_input_label.innerText = currentPath;
+    command_input_label.innerText = await window.projectDetail.currentPath();
 
 
     terminal.addEventListener('scroll', (ev) => {
         const calc = ev.target.scrollHeight - ev.target.clientHeight;
-        if (calc - 1000 < +ev.target.scrollTop) {
-            console.log('%c FALSEEE', 'background: #222; color: #bada55', +ev.target.scrollTop, calc);
-            scroll = false;
-        } else {
-            console.log('%c TRUUUUU', 'background: #222; color: #bada55', +ev.target.scrollTop, calc);
-
-            scroll = true;
-        }
+        scroll = calc - 1200 >= +ev.target.scrollTop;
     });
 
 

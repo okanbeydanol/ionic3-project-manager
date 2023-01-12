@@ -11,9 +11,11 @@ const { globalFunctions } = require('../functions/global-shared');
 const { PasswordManager } = require('../functions/password-manager');
 const { SdkManager } = require('../functions/sdk-manager');
 const { PackageJsonManager } = require('../functions/package_json_control');
+const { XcodeManager } = require('../functions/xcode-manager');
 
 (async () => {
     let mainWindow = null;
+    let optionsWindow = null;
     let settingsWindow = null;
     let advanceSettingsWindow = null;
     let dragDropWindow = null;
@@ -27,7 +29,6 @@ const { PackageJsonManager } = require('../functions/package_json_control');
     let configData = null;
     const createWindow = async () => {
         const project_path = await globalFunctions.getProjectPath;
-        console.log('%c project_path', 'background: #222; color: #bada55', project_path);
         if (project_path) {
             const d = await openMainWindow();
             if (!d.data) {
@@ -131,6 +132,20 @@ const { PackageJsonManager } = require('../functions/package_json_control');
                 error: false
             };
         });
+        ipcMain.handle('deployForTestDetail:startReadDevices', async (_event, value) => {
+            const getAndroidDevices = await new SdkManager().getAndroidAvailableEmulatorList(mainWindow);
+            const getIosDevices = await new XcodeManager().getIosAvailableEmulatorList(mainWindow);
+            return { android: getAndroidDevices, ios: getIosDevices };
+        });
+        ipcMain.handle('deployForTestDetail:startIosDevice', async (_event, value) => {
+            const startIos = await new XcodeManager().startIosDevice(mainWindow, value);
+            return { startIos };
+        });
+        ipcMain.handle('deployForTestDetail:killAllPorts', async (_event, value) => {
+            const killPorts = await new XcodeManager().killPorts(mainWindow, 8100, value);
+            return { killPorts };
+        });
+
     };
 
     const fetch_data = async () => {
@@ -256,6 +271,29 @@ const { PackageJsonManager } = require('../functions/package_json_control');
         settingsWindow.show();
         const settingsWindowXY = settingsWindow.getPosition();
         const settingsWindowGetSize = settingsWindow.getSize();
+
+
+        optionsWindow = new BrowserWindow({
+            width: 540,
+            height: 840,
+            webPreferences: {
+                devTools: true,
+                disableHtmlFullscreenWindowResize: true,
+                nodeIntegration: true,
+                enableRemoteModule: true,
+                webSecurity: true,
+                experimentalFeatures: false,
+                contextIsolation: true,
+                preload: path.resolve(app.getAppPath(), 'app/src/preload/preload.js'),
+                show: false
+            }
+        });
+        // Open the DevTools.
+        await optionsWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/deployForTest/index.html'));
+        await optionsWindow.webContents.openDevTools({ mode: 'detach' });
+        optionsWindow.show();
+
+
         advanceSettingsWindow = new BrowserWindow({
             width: 1250,
             height: 824,
@@ -270,8 +308,6 @@ const { PackageJsonManager } = require('../functions/package_json_control');
                 preload: path.resolve(app.getAppPath(), 'app/src/preload/preload.js'),
                 show: false
             }
-            /*  x: mainWindowXY[0] + mainWindowGetSize[0] + 20,
-              y: settingsWindowXY[1] + settingsWindowGetSize[1] + 20*/
         });
         // Open the DevTools.
         await advanceSettingsWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/advanceSettings/index.html'));
