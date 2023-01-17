@@ -34,8 +34,41 @@ class GradleManager {
         });
     }
 
-    async installGradleManually(mainWindow, value = '6.9') {
+    async installGradleManually(mainWindow, value = '6.5') {
         return new Promise(async (resolve) => {
+
+            await this.sendListen(mainWindow, 'Trying to fetch all gradle versions!', this.consoleType.info);
+            const downloadJson = await this.childManager.executeCommand(
+                mainWindow,
+                'curl -s "https://services.gradle.org/versions/all"',
+                null,
+                'When try to fetch about latest build json information. Something get wrong!'
+            );
+            if (downloadJson.error) {
+                return resolve(downloadJson);
+            }
+            const data = JSON.parse(downloadJson.data);
+            let find = data.find(o => o.version === value);
+            if (!find) {
+                find = data.find(o => o.version.includes(value));
+                if (!find) {
+                    return resolve({ error: true, data: null, message: 'Gradle version doesnt exist' });
+                }
+                await this.sendListen(mainWindow, 'You specified version doesnt exist. We found this instead: ' + find.version, this.consoleType.info);
+            }
+
+            if (find.broken) {
+                return resolve({
+                    error: true,
+                    data: null,
+                    message: 'Gradle version is broken. Choose different version'
+                });
+            }
+
+            const gradleJsonVersion = find.version;
+            const gradleJsonDownloadURL = find.downloadUrl;
+
+
             await this.sendListen(mainWindow, 'Trying prompt computer password!', this.consoleType.info);
             const password = await this.passwordManager.getUserPassword(mainWindow, false);
 
@@ -53,30 +86,30 @@ class GradleManager {
             }
             console.log('%c mkdir', 'background: #222; color: #bada55', mkdir);
 
-            await this.sendListen(mainWindow, 'Trying download gradle-' + value + '-bin.zip!', this.consoleType.info);
+            await this.sendListen(mainWindow, 'Trying download gradle-' + gradleJsonVersion + '-bin.zip!', this.consoleType.info);
             const download = await this.childManager.executeCommand(
                 mainWindow,
-                'echo "' + password + '" | sudo -S -k curl -L https://services.gradle.org/distributions/gradle-' + value + '-bin.zip --output /opt/gradle/gradle-' + value + '-bin.zip',
+                'echo "' + password + '" | sudo -S -k curl -L ' + gradleJsonDownloadURL + ' --output /opt/gradle/gradle-' + gradleJsonVersion + '-bin.zip',
                 null,
-                'When try to download gradle-' + value + '-bin.zip. Something get wrong!'
+                'When try to download gradle-' + gradleJsonVersion + '-bin.zip. Something get wrong!'
             );
             console.log('%c download', 'background: #222; color: #bada55', download);
 
-            await this.sendListen(mainWindow, 'Trying unzip gradle-' + value + '-bin.zip!', this.consoleType.info);
+            await this.sendListen(mainWindow, 'Trying unzip gradle-' + gradleJsonVersion + '-bin.zip!', this.consoleType.info);
             const unzip = await this.childManager.executeCommand(
                 mainWindow,
-                'echo "' + password + '" | sudo -S -k unzip -qq /opt/gradle/gradle-' + value + '-bin.zip -d /opt/gradle',
+                'echo "' + password + '" | sudo -S -k unzip -qq /opt/gradle/gradle-' + gradleJsonVersion + '-bin.zip -d /opt/gradle',
                 null,
-                'When try to unzip gradle-' + value + '-bin.zip. Something get wrong!'
+                'When try to unzip gradle-' + gradleJsonVersion + '-bin.zip. Something get wrong!'
             );
             console.log('%c unzip', 'background: #222; color: #bada55', unzip);
 
-            await this.sendListen(mainWindow, 'Trying remove gradle-' + value + '-bin.zip!', this.consoleType.info);
+            await this.sendListen(mainWindow, 'Trying remove gradle-' + gradleJsonVersion + '-bin.zip!', this.consoleType.info);
             const remove = await this.childManager.executeCommand(
                 mainWindow,
-                'echo "' + password + '" | sudo -S -k rm -rf /opt/gradle/gradle-' + value + '-bin.zip',
+                'echo "' + password + '" | sudo -S -k rm -rf /opt/gradle/gradle-' + gradleJsonVersion + '-bin.zip',
                 null,
-                'When try to remove gradle-' + value + '-bin.zip. Something get wrong!'
+                'When try to remove gradle-' + gradleJsonVersion + '-bin.zip. Something get wrong!'
             );
             console.log('%c remove', 'background: #222; color: #bada55', remove);
 
@@ -85,7 +118,7 @@ class GradleManager {
                 return resolve(checkAnySetGradleVersionAndRemove);
             }
 
-            const setGradleVersion = await this.setGradleVersion(mainWindow, value);
+            const setGradleVersion = await this.setGradleVersion(mainWindow, gradleJsonVersion);
             if (setGradleVersion.error) {
                 return resolve(setGradleVersion);
             }

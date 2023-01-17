@@ -207,7 +207,7 @@ class EnvironmentManager {
     async handleJava(mainWindow) {
         return new Promise(async (resolve) => {
             let javaVersion = await this.JavaManager.getJavaVersion(mainWindow);
-            if (javaVersion.error || (!javaVersion.error && !javaVersion.data.trim().startsWith('1.8'))) {
+            if (javaVersion.error || (!javaVersion.error && !javaVersion.data.trim().startsWith('11'))) {
                 javaVersion = await this.tryInstallJavaWithAzul(mainWindow);
                 if (javaVersion.error) {
                     return resolve(javaVersion);
@@ -319,7 +319,7 @@ class EnvironmentManager {
 
     async tryInstallJavaWithAzul(mainWindow) {
         return new Promise(async (resolve) => {
-            const installJavaWithBrew = await this.JavaManager.installJavaWithAzulSettings(mainWindow, '1.8');
+            const installJavaWithBrew = await this.JavaManager.installJavaWithAzulSettings(mainWindow, '11');
             return resolve(installJavaWithBrew);
         });
     }

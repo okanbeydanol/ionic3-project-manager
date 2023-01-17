@@ -27,12 +27,25 @@
                    value="uninstall_first_android">
             <label class="radio-label" for="uninstall_first_android">Uninstall First</label>
         </div>
-
+        <div class="select-wrapper">
+            <div class="server-select">
+                <label for="android-server">Server</label>
+                <select id="android-server" name="android-server" style="width: 100%">
+                    <option value="dev">Development</option>
+                    <option value="stg">Staging</option>
+                    <option value="prod">Production</option>
+                </select>
+            </div>
+        </div>
+        <div class="android_avd_name_wrapper --hidden" id="android_avd_name_wrapper">
+            <label class="radio-label" for="android_avd_name">AVD Name</label>
+            <input class="config-input" id="android_avd_name" name="android_avd_name" type="text"
+                   value="NEW_EMULATOR_NAME_1">
+        </div>
         <div class="select-wrapper">
             <div class="server-select">
                 <label for="android-devices">Android Devices</label>
                 <select id="android-devices" name="android-devices" style="width: 100%">
-                    <option value="0">Please Choose a android devices.</option>
                 </select>
 
             </div>
@@ -42,6 +55,7 @@
                style="margin-top: 22px;color: dimgrey;"></i>
 
         </div>
+
         <label style="padding: 6px 0 0 32px;font-size: 18px;">Ios Options</label>
         <div class="options_container" style="display: flex;padding: 6px 0 0 34px;">
             <input checked id="live_reload_ios" name="live_reload_ios" type="checkbox" value="live_reload_ios">
@@ -52,9 +66,18 @@
         </div>
         <div class="select-wrapper">
             <div class="server-select">
+                <label for="ios-server">Server</label>
+                <select id="ios-server" name="ios-server" style="width: 100%">
+                    <option value="dev">Development</option>
+                    <option value="stg">Staging</option>
+                    <option value="prod">Production</option>
+                </select>
+            </div>
+        </div>
+        <div class="select-wrapper">
+            <div class="server-select">
                 <label for="ios-devices">Ios Devices</label>
                 <select id="ios-devices" name="ios-devices" style="width: 100%">
-                    <option value="0">Please Choose a ios devices.</option>
                 </select>
 
             </div>

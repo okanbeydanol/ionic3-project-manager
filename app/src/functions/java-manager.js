@@ -4,6 +4,7 @@ const { value } = require('yarn/lib/cli');
 const { ZshrcManager } = require('./zshrc-manager');
 const { FsManager } = require('./fs-manager');
 const { app } = require('electron');
+const xml2js = require('xml2js');
 
 class JavaManager {
     childManager = new ChildProcess();
@@ -29,6 +30,9 @@ class JavaManager {
                 null,
                 'You do not have a Java version installed on your computer.'
             );
+            if (javaVersion.error) {
+                await this.cleanJavaVirtualMachinesFolders(mainWindow);
+            }
             if (!javaVersion.error) {
                 javaVersion.data = javaVersion.data.trim().split(' ')[1].trim();
             }
@@ -92,10 +96,18 @@ class JavaManager {
             const replace = checkJavaVersionVirtualMachineExist.data ? checkJavaVersionVirtualMachineExist.data.replace(/(\/*Matching Java Virtual Machines \(\d+\):\n +\/*)/, '') : '';
             const split = replace.split('\n    ');
             const filter = split.filter((o) => o !== '\n    ');
-            checkJavaVersionVirtualMachineExist.data = filter.map((d) => {
-                return new RegExp(/(\/*\S+ \/*)/).exec(d)[0].trim();
-            }).find((o) => o.includes(value));
-            return resolve(checkJavaVersionVirtualMachineExist);
+            checkJavaVersionVirtualMachineExist.data = null;
+            filter.map((d) => {
+                const data = new RegExp(/(\/*\S+ \/*)/).exec(d);
+                if (data && data[0].includes(value)) {
+                    checkJavaVersionVirtualMachineExist.data = data[0].trim();
+                }
+                return data;
+            });
+            return resolve({
+                error: !checkJavaVersionVirtualMachineExist.data,
+                data: checkJavaVersionVirtualMachineExist.data
+            });
         });
     }
 
@@ -192,19 +204,32 @@ class JavaManager {
         });
     }
 
+    async getPhysicalPath(mainWindow, version) {
+        return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Checking Physical Java Path!', this.consoleType.info);
+            const paths = await this.getPhysicalPaths(mainWindow);
+            const search = paths.find((o) => o.includes(version));
+            if (search) {
+                return resolve(search);
+            } else {
+                return resolve(null);
+            }
+        });
+    }
+
     async cleanJavaVirtualMachinesFolders(mainWindow) {
         return new Promise(async (resolve) => {
             const physicalPaths = await this.getPhysicalPaths(mainWindow);
-            await physicalPaths.reduce((lastPromise, s, currentIndex, array) => {
+            await physicalPaths.reduce((lastPromise, path) => {
                 return lastPromise.then(async () => {
                     const password = await this.passwordManager.getUserPassword(mainWindow, false);
 
-                    await this.sendListen(mainWindow, 'Trying remove ' + s + ' folder!', this.consoleType.info);
+                    await this.sendListen(mainWindow, 'Trying remove ' + path + ' folder!', this.consoleType.info);
                     const mkdir = await this.childManager.executeCommand(
                         mainWindow,
-                        'echo "' + password + '" | sudo -S -k rm -rf ' + s,
+                        'echo "' + password + '" | sudo -S -k rm -rf ' + path,
                         null,
-                        'When try to remove ' + s + ' folder. Something get wrong!'
+                        'When try to remove ' + path + ' folder. Something get wrong!'
                     );
 
                     if (mkdir.error) {
@@ -218,18 +243,18 @@ class JavaManager {
         });
     }
 
-    async installJavaWithAzulSettings(mainWindow, value) {
+    async installJavaWithAzulSettings(mainWindow, value = '11') {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Trying fetch about latest build json information:  ' + value + ' version!', this.consoleType.info);
             const base_url = 'https://api.azul.com/zulu/download/community/v1.0/bundles/latest/';
-            const jdk_version = value;
+            const jdk_search_version = value;
             const arch = 'arm64';
             const bundle_type = 'jdk';
             const ext = 'zip';
             const os = 'macos';
             const downloadJson = await this.childManager.executeCommand(
                 mainWindow,
-                'curl -s "' + base_url + '?jdk_version=' + jdk_version + '&bundle_type=' + bundle_type + '&ext=' + ext + '&os=' + os + '&arch=' + arch + '&javafx=false"',
+                'curl -s "' + base_url + '?jdk_version=' + jdk_search_version + '&bundle_type=' + bundle_type + '&ext=' + ext + '&os=' + os + '&arch=' + arch + '&javafx=false"',
                 null,
                 'When try to fetch about latest build json information. Something get wrong!'
             );
@@ -244,6 +269,7 @@ class JavaManager {
             }
             const jsonData = JSON.parse(downloadJson.data);
             const javaName = jsonData.name.replace('.zip', '');
+            const javaZipName = jsonData.name;
 
             await this.sendListen(mainWindow, 'Trying prompt computer password!', this.consoleType.info);
             const password = await this.passwordManager.getUserPassword(mainWindow, false);
@@ -263,7 +289,7 @@ class JavaManager {
             await this.sendListen(mainWindow, 'Trying download Java jdk!', this.consoleType.info);
             const download = await this.childManager.executeCommand(
                 mainWindow,
-                'echo "' + password + '" | sudo -S -k curl -L ' + jsonData.url + ' --output /Library/Java/JavaVirtualMachines/' + jsonData.name,
+                'echo "' + password + '" | sudo -S -k curl -L ' + jsonData.url + ' --output /Library/Java/JavaVirtualMachines/' + javaZipName,
                 null,
                 'When try to download Java jdk. Something get wrong!'
             );
@@ -274,7 +300,7 @@ class JavaManager {
             await this.sendListen(mainWindow, 'Trying unzip Java jdk!', this.consoleType.info);
             const unzip = await this.childManager.executeCommand(
                 mainWindow,
-                'echo "' + password + '" | sudo -S -k unzip -qq /Library/Java/JavaVirtualMachines/' + jsonData.name + ' -d /Library/Java/JavaVirtualMachines',
+                'echo "' + password + '" | sudo -S -k unzip -qq /Library/Java/JavaVirtualMachines/' + javaZipName + ' -d /Library/Java/JavaVirtualMachines',
                 null,
                 'When try to unzip Java jdk. Something get wrong!'
             );
@@ -293,7 +319,7 @@ class JavaManager {
             await this.sendListen(mainWindow, 'Trying remove unnecessary Java jdk zip!', this.consoleType.info);
             const removeZip = await this.childManager.executeCommand(
                 mainWindow,
-                'echo "' + password + '" | sudo -S -k rm -rf /Library/Java/JavaVirtualMachines/' + jsonData.name,
+                'echo "' + password + '" | sudo -S -k rm -rf /Library/Java/JavaVirtualMachines/' + javaZipName,
                 null,
                 'When try to remove unnecessary Java jdk zip. Something get wrong!'
             );
@@ -305,12 +331,34 @@ class JavaManager {
                 null,
                 'When try to remove unnecessary Java jdk folder. Something get wrong!'
             );
-            let checkVersion = jdk_version;
-            if (checkVersion.startsWith('1.')) {
-                checkVersion = jdk_version.replace('1.', '');
+
+            const physicalPath = await this.getPhysicalPath(mainWindow, jsonData.java_version[0]);
+
+            const infoPlistExist = await this.fsManager.pathExist(physicalPath.trim() + '/Contents/Info.plist');
+            if (!infoPlistExist.data) {
+                return resolve(infoPlistExist);
             }
 
-            const javaVirtualMachine = await this.checkJavaVersionVirtualMachineExist(mainWindow, checkVersion);
+            const readInfoPlist = await this.fsManager.readFile(physicalPath.trim() + '/Contents/Info.plist', {
+                encoding: 'utf8',
+                flag: 'r',
+                signal: null
+            }).then(async (config) => {
+                const parser = new xml2js.Parser({ includeWhiteChars: true });
+                return await parser.parseStringPromise(config.data);
+            });
+
+            let JVMVersion = null;
+            readInfoPlist.plist.dict[0].dict[0].key.map((data, index) => {
+                if (data === 'JVMVersion') {
+                    JVMVersion = readInfoPlist.plist.dict[0].dict[0].string[index - (Object.hasOwn(readInfoPlist.plist.dict[0].dict[0], 'array') ? 1 : 0)];
+                }
+            });
+            if (!JVMVersion) {
+                JVMVersion = jsonData.java_version.join('');
+            }
+
+            const javaVirtualMachine = await this.checkJavaVersionVirtualMachineExist(mainWindow, JVMVersion);
             if (javaVirtualMachine.error) {
                 return resolve(javaVirtualMachine);
             }

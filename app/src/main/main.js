@@ -133,7 +133,7 @@ const { XcodeManager } = require('../functions/xcode-manager');
             };
         });
         ipcMain.handle('deployForTestDetail:startReadDevices', async (_event, value) => {
-            const getAndroidDevices = await new SdkManager().getAndroidAvailableEmulatorList(mainWindow);
+            const getAndroidDevices = await new SdkManager().getAndroidAvailableAvdManagerList(mainWindow);
             const getIosDevices = await new XcodeManager().getIosAvailableEmulatorList(mainWindow);
             return { android: getAndroidDevices, ios: getIosDevices };
         });
@@ -141,11 +141,18 @@ const { XcodeManager } = require('../functions/xcode-manager');
             const startIos = await new XcodeManager().startIosDevice(mainWindow, value);
             return { startIos };
         });
-        ipcMain.handle('deployForTestDetail:killAllPorts', async (_event, value) => {
+        ipcMain.handle('deployForTestDetail:killAllPortsIos', async (_event, value) => {
             const killPorts = await new XcodeManager().killPorts(mainWindow, 8100, value);
             return { killPorts };
         });
-
+        ipcMain.handle('deployForTestDetail:killAllPortsAndroid', async (_event, value) => {
+            const killPorts = await new SdkManager().killPorts(mainWindow, 8100, value);
+            return { killPorts };
+        });
+        ipcMain.handle('deployForTestDetail:startAndroidDevice', async (_event, value) => {
+            const startAndroid = await new SdkManager().startAndroidDevice(mainWindow, value);
+            return { startAndroid };
+        });
     };
 
     const fetch_data = async () => {

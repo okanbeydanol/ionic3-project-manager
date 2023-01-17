@@ -2,6 +2,7 @@ const { ChildProcess } = require('./child_process');
 const { app } = require('electron');
 const { ZshrcManager } = require('./zshrc-manager');
 const { FsManager } = require('./fs-manager');
+const { globalFunctions } = require('./global-shared');
 
 class SdkManager {
     childManager = new ChildProcess();
@@ -15,6 +16,202 @@ class SdkManager {
     };
 
     constructor() {
+    }
+
+    async getAndroidAvailableAvdManagerList(mainWindow) {
+        return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Checking android available avd manager list!', this.consoleType.info);
+
+
+            const androidAvailableVirtualList = await this.childManager.executeCommand(
+                mainWindow,
+                'avdmanager list  | awk \'/Available Android Virtual Devices:/{flag=1; next} /Available devices definitions:/{flag=0} flag\'',
+                null,
+                'When try to get available avd manager list. Something get wrong!', () => {
+                }, {
+                    command: true,
+                    liveOutput: false,
+                    endOutput: false,
+                    endError: true,
+                    info: true
+                }
+            );
+            if (androidAvailableVirtualList.error) {
+                return resolve(androidAvailableVirtualList);
+            }
+            const regexVirtual = /Name: ([\S|\ |\d]+)\n +Device: (\S+)/g;
+            regexVirtual.lastIndex = 0;
+            let m;
+            let data = null;
+            const lists = [];
+            while ((m = regexVirtual.exec(androidAvailableVirtualList.data)) !== null) {
+                if (m.index === regexVirtual.lastIndex) {
+                    regexVirtual.lastIndex++;
+                }
+                data = { id: null, device: null };
+                m.forEach((match, groupIndex) => {
+                    if (match && groupIndex === 0) {
+                    } else if (match && groupIndex === 1) {
+                        data.id = match;
+                    } else if (match && groupIndex === 2) {
+                        data.device = match;
+                        lists.push({ id: data.id, device: data.device });
+                    }
+                });
+            }
+
+
+            const androidAvailableDeviceDefinitions = await this.childManager.executeCommand(
+                mainWindow,
+                'avdmanager list  | awk \'/Available devices definitions:/{flag=1; next} /Available Android targets:/{flag=0} flag\'',
+                null,
+                'When try to get available avd manager list. Something get wrong!', () => {
+                }, {
+                    command: true,
+                    liveOutput: false,
+                    endOutput: false,
+                    endError: true,
+                    info: true
+                }
+            );
+            if (androidAvailableDeviceDefinitions.error) {
+                return resolve(androidAvailableDeviceDefinitions);
+            }
+
+            const regexDefinition = /id: \d+ or "([\S|\ |\d]+)"\n +Name: ([\S|\ |\d]+)\n/g;
+            regexDefinition.lastIndex = 0;
+            while ((m = regexDefinition.exec(androidAvailableDeviceDefinitions.data)) !== null) {
+                if (m.index === regexDefinition.lastIndex) {
+                    regexDefinition.lastIndex++;
+                }
+                data = { id: null, name: null };
+                m.forEach((match, groupIndex) => {
+                    if (match && groupIndex === 0) {
+                    } else if (match && groupIndex === 1) {
+                        data.id = match;
+                    } else if (match && groupIndex === 2) {
+                        data.name = match;
+                        lists.push({ id: data.id, name: data.name });
+                    }
+                });
+            }
+
+
+            return resolve({ error: false, data: lists });
+        });
+    }
+
+    async getAndroidAvailableEmulatorList(mainWindow) {
+        return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Checking android available emulator list!', this.consoleType.info);
+            const androidAvailableEmulatorList = await this.childManager.executeCommand(
+                mainWindow,
+                'emulator -list-avds',
+                null,
+                'When try to get available emulator list. Something get wrong!', () => {
+                }, {
+                    command: true,
+                    liveOutput: false,
+                    endOutput: false,
+                    endError: true,
+                    info: true
+                }
+            );
+            if (androidAvailableEmulatorList.error) {
+                return resolve(androidAvailableEmulatorList);
+            }
+            const split = androidAvailableEmulatorList.data.split('\n');
+            return resolve({ error: false, data: split.length > 0 ? split : [] });
+        });
+    }
+
+    async startAndroidDevice(mainWindow, value = {
+        device: null,
+        uninstall: null,
+        live_reload: null,
+        server: null,
+        avdName: null,
+        createAvd: null
+    }) {
+        return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Starting Android Device!', this.consoleType.info);
+            await this.setConfigXMLContent(mainWindow, value.live_reload);
+            await this.killPorts(mainWindow);
+
+            return resolve(javaVersion);
+        });
+    }
+
+
+    async killPorts(mainWindow, port = '8100', data = {
+        device: null,
+        shutdown: true
+    }) {
+        return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Checking port is running?!', this.consoleType.info);
+            if (data.device && data.shutdown) {
+
+            }
+            const checkPortExist = await this.childManager.executeCommand(
+                mainWindow,
+                'lsof -i tcp:' + port,
+                null,
+                'When try to checking running port. Something get wrong!', () => {
+                }
+            );
+            const pids = [];
+            const promises = [];
+            if (!checkPortExist.error) {
+                let split = checkPortExist.data.split('\n');
+                split.splice(0, 1);
+                split.forEach((match, groupIndex) => {
+                    if (match) {
+                        const s = +match.split(' ').filter(o => !!o)[1].trim();
+                        if (s) {
+                            pids.push(s);
+                            promises.push(new Promise(function (r) {
+                                r(new ChildProcess().executeCommand(
+                                    mainWindow,
+                                    'kill -9 ' + s,
+                                    null,
+                                    'When try to killing port. Something get wrong!', () => {
+                                    }
+                                ));
+                            }));
+                        }
+                    }
+                });
+                //Then this returns a promise that will resolve when ALL are so.
+                await Promise.all(promises);
+            }
+            return resolve({ error: false, data: pids });
+        });
+    }
+
+    async setConfigXMLContent(mainWindow, liveReload = true) {
+        return new Promise(async (resolve) => {
+            const global_ip = await globalFunctions.getIpAddress;
+            const content = await globalFunctions.getContent;
+            const ip_address = 'http://' + global_ip + ':8100';
+            if (liveReload) {
+                content[0].$.src = ip_address;
+                content[0].$['original-src'] = 'index.html';
+            } else {
+                content[0].$.src = 'index.html';
+                delete content[0].$['original-src'];
+            }
+            await this.sendListen(mainWindow, 'Config Content Is Set: ' + content[0].$.src, this.consoleType.info);
+            globalFunctions.setContent = content;
+            const navigations = await globalFunctions.getNavigations;
+            const findIndex = navigations.findIndex((n) => n.$.href === ip_address);
+            if (liveReload) {
+                findIndex === -1 && navigations.push({ '$': { href: content[0].$.src } });
+            } else {
+                findIndex !== -1 && navigations.splice(findIndex, 1);
+            }
+            globalFunctions.setNavigations = navigations;
+            resolve(null);
+        });
     }
 
     async getAndroidSdkVersion(mainWindow) {
@@ -703,66 +900,6 @@ export PATH=$PATH:$ANDROID_SDK_ROOT/system-images/${ systemImages.android }/${ s
                 });
             }
             return resolve({ error: false, data: { platformTools, platformsAndroid, buildTools } });
-        });
-    }
-
-    async getAndroidAvailableAvdManagerList(mainWindow) {
-        return new Promise(async (resolve) => {
-            await this.sendListen(mainWindow, 'Checking android available avd manager list!', this.consoleType.info);
-            const androidAvailableAvdManagerList = await this.childManager.executeCommand(
-                mainWindow,
-                'avdmanager list  | awk \'/Available/{flag=1; next} /Installed/{flag=0} flag\'',
-                null,
-                'When try to get available avd manager list. Something get wrong!', () => {
-                }, {
-                    command: true,
-                    liveOutput: false,
-                    endOutput: false,
-                    endError: true,
-                    info: true
-                }
-            );
-            if (androidAvailableAvdManagerList.error) {
-                return resolve(androidAvailableAvdManagerList);
-            }
-            const regex = /id: \d+ or "[\S|\ |\d]+"\n +Name: [\S|\ |\d]+\n +OEM : [\S|\ |\d]+\n/g;
-            let m;
-            const lists = [];
-            while ((m = regex.exec(androidAvailableAvdManagerList.data)) !== null) {
-                if (m.index === regex.lastIndex) {
-                    regex.lastIndex++;
-                }
-                m.forEach((match) => {
-                    if (match && !lists.includes(match)) {
-                        lists.push(match);
-                    }
-                });
-            }
-            return resolve({ error: false, data: lists });
-        });
-    }
-
-    async getAndroidAvailableEmulatorList(mainWindow) {
-        return new Promise(async (resolve) => {
-            await this.sendListen(mainWindow, 'Checking android available emulator list!', this.consoleType.info);
-            const androidAvailableEmulatorList = await this.childManager.executeCommand(
-                mainWindow,
-                'emulator -list-avds',
-                null,
-                'When try to get available emulator list. Something get wrong!', () => {
-                }, {
-                    command: true,
-                    liveOutput: false,
-                    endOutput: false,
-                    endError: true,
-                    info: true
-                }
-            );
-            if (androidAvailableEmulatorList.error) {
-                return resolve(androidAvailableEmulatorList);
-            }
-            const split = androidAvailableEmulatorList.data.split('\n');
-            return resolve({ error: false, data: split.length > 0 ? split : [] });
         });
     }
 

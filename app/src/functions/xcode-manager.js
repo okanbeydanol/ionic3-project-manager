@@ -107,44 +107,28 @@ class XcodeManager {
     async startIosDevice(mainWindow, value = {
         device: null,
         uninstall: null,
-        live_reload: null
+        live_reload: null,
+        server: null
     }) {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Starting Ios Device!', this.consoleType.info);
             await this.setConfigXMLContent(mainWindow, value.live_reload);
             await this.killPorts(mainWindow);
             const device = await this.getIosAvailableEmulatorIdentifier(mainWindow, value.device);
-            let liveSignal = null;
             if (!device.data.udid) {
                 const createEmulator = await this.createEmulator(mainWindow, device.data.name, device.data.identifier, device.data.runtime_identifier);
                 if (!createEmulator.error) {
                     device.data = createEmulator.data;
-                    if (value.live_reload) {
-                        liveSignal = await this.startLiveReload(mainWindow);
-                    }
-                }
-            } else {
-                if (value.live_reload) {
-                    liveSignal = await this.startLiveReload(mainWindow);
                 }
             }
-
             await this.bootOnEmulator(mainWindow, device.data.udid);
-            await this.sendListen(mainWindow, 'Starting buildApp!', this.consoleType.info);
-            const startBuildApp = await this.startBuildApp(mainWindow, device.data.identifier);
-            if (!startBuildApp.error) {
-                const openEmulator = await this.openOnEmulator(mainWindow, device.data.udid);
-                if (!openEmulator.error) {
-                    if (value.uninstall) {
-                        await this.uninstallOnEmulator(mainWindow, device.data.udid);
-                    }
-                    const installApp = await this.installOnEmulator(mainWindow, device.data.udid);
-                    if (!installApp.error) {
-                        const launch = await this.launchOnEmulator(mainWindow, device.data.udid);
-                        return resolve({ error: false, data: launch });
-                    }
+            setTimeout(async () => {
+                if (value.uninstall) {
+                    await this.uninstallOnEmulator(mainWindow, device.data.udid);
                 }
-            }
+            }, 20000);
+            const startBuildApp = await this.startBuildApp(mainWindow, device.data.udid, device.data.identifier, value.server, value.live_reload);
+            return resolve({ error: false, data: startBuildApp });
         });
     };
 
@@ -201,37 +185,27 @@ class XcodeManager {
         });
     }
 
-    async startLiveReload(mainWindow) {
+    async startBuildApp(mainWindow, udid, identifier, server, live_reload) {
         return new Promise(async (resolve) => {
-            await this.sendListen(mainWindow, 'Starting live reload!', this.consoleType.info);
-            let server = 'stg';
-            const cmd_node = 'export NODE_ENV=' + (!server ? 'dev' : server) + this.getStartLiveReloadCommand();
-            return await new ChildProcess().executeCommand(
+            const cmd_node = 'export NODE_ENV=' + (!server ? 'dev' : server) + '&&' + this.getBuildAppCommand(udid, identifier, live_reload);
+            const buildApp = await new ChildProcess().executeCommand(
                 mainWindow,
                 cmd_node,
                 null,
-                'When try to live reload. Something get wrong!', async (ev) => {
-                    if (!ev.error && ev.type === 'stdout' && ev.data.includes('lint&nbsp;finished&nbsp;in')) {
-                        return resolve({ error: false, data: ev.signal });
-                    }
-                }
-            );
-        });
-    };
-
-    async startBuildApp(mainWindow, identifier) {
-        return new Promise(async (resolve) => {
-            const buildApp = await new ChildProcess().executeCommand(
-                mainWindow,
-                this.getBuildAppCommand(identifier.replace('com.apple.CoreSimulator.SimDeviceType.', '')),
-                null,
                 'When try to build app. Something get wrong!', async (ev) => {
-                    if (ev.data.includes('BUILD SUCCEEDED')) {
-                        return resolve({ error: false, data: null });
+                    if (!live_reload) {
+                        if (ev.data.includes('BUILD SUCCEEDED')) {
+                            return resolve({ error: false, data: null });
+                        }
+                    } else {
+                        if (ev.data.includes('lint&nbsp;finished&nbsp;in')) {
+                            return resolve({ error: false, data: null });
+                        }
                     }
+
                 }, {
                     command: true,
-                    liveOutput: false,
+                    liveOutput: true,
                     endOutput: false,
                     endError: true,
                     info: true
@@ -354,16 +328,15 @@ class XcodeManager {
         });
     }
 
-    getStartLiveReloadCommand() {
-        return 'npx gulp && npm run ionic:serve -- --address 0.0.0.0 --port 8100 --livereload-port 35729 --dev-logger-port 53703 --consolelogs --nobrowser --iscordovaserve --platform ios --target cordova';
+    getBuildAppCommand(udid, identifier, liveReload) {
+        if (!liveReload) {
+            return 'ionic cordova run ios --emulator --consolelogs --aot --nobrowser --iscordovaserve --target ' + udid + ' -- --target ' + identifier.replace('com.apple.CoreSimulator.SimDeviceType.', '') + ' --consolelogs --aot';
+        }
+        return 'ionic cordova run ios --emulator -l --consolelogs --aot --nobrowser --iscordovaserve --target ' + udid + ' --host 0.0.0.0 --port 8100 --livereload-port 35729 --dev-logger-port 53703 -- --target ' + identifier.replace('com.apple.CoreSimulator.SimDeviceType.', '') + ' --consolelogs --aot -l';
     }
 
     getShutDownCommand(udid) {
         return 'xcrun simctl shutdown ' + udid;
-    }
-
-    getBuildAppCommand(identifier) {
-        return 'cordova build ios --debug --emulator --target ' + identifier;
     }
 
     getBootCommand(udid) {

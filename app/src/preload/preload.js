@@ -28,5 +28,7 @@ contextBridge.exposeInMainWorld('projectSettings', {
 contextBridge.exposeInMainWorld('deployForTestDetail', {
     startReadDevices: (value) => ipcRenderer.invoke('deployForTestDetail:startReadDevices', value),
     startIosDevice: (value) => ipcRenderer.invoke('deployForTestDetail:startIosDevice', value),
-    killAllPorts: (value) => ipcRenderer.invoke('deployForTestDetail:killAllPorts', value),
+    startAndroidDevice: (value) => ipcRenderer.invoke('deployForTestDetail:startAndroidDevice', value),
+    killAllPortsAndroid: (value) => ipcRenderer.invoke('deployForTestDetail:killAllPortsAndroid', value),
+    killAllPortsIos: (value) => ipcRenderer.invoke('deployForTestDetail:killAllPortsIos', value),
 });

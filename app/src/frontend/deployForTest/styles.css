@@ -82,11 +82,26 @@
 input,
 textarea,
 [contenteditable] {
-    caret-color: rgba(13, 15, 20, 0.6);
+    caret-color: #515151;
 }
 
 input:focus {
     outline: none !important;
+}
+
+.config-input {
+    background: #0E1116;
+    height: 25px;
+    color: #bfb293;
+    box-shadow: none;
+    padding-inline-start: 6px;
+    border: 1px solid #515151;
+    border-radius: 4px;
+    width: 100%;
+}
+
+.android_avd_name_wrapper {
+    padding: 6px 34px 0 32px;
 }
 
 .extra-container label {
