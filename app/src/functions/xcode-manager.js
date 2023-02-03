@@ -122,13 +122,13 @@ class XcodeManager {
                 }
             }
             await this.bootOnEmulator(mainWindow, device.data.udid);
-            setTimeout(async () => {
-                if (value.uninstall) {
+            if (value.uninstall) {
+                setTimeout(async () => {
                     await this.uninstallOnEmulator(mainWindow, device.data.udid);
-                }
-            }, 20000);
+                }, 20000);
+            }
             const startBuildApp = await this.startBuildApp(mainWindow, device.data.udid, device.data.identifier, value.server, value.live_reload);
-            return resolve({ error: false, data: startBuildApp });
+            return resolve(startBuildApp);
         });
     };
 

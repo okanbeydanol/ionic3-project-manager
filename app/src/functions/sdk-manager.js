@@ -3,6 +3,8 @@ const { app } = require('electron');
 const { ZshrcManager } = require('./zshrc-manager');
 const { FsManager } = require('./fs-manager');
 const { globalFunctions } = require('./global-shared');
+const path = require('path');
+const config_path = path.join(__dirname, '../config');
 
 class SdkManager {
     childManager = new ChildProcess();
@@ -21,8 +23,6 @@ class SdkManager {
     async getAndroidAvailableAvdManagerList(mainWindow) {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Checking android available avd manager list!', this.consoleType.info);
-
-
             const androidAvailableVirtualList = await this.childManager.executeCommand(
                 mainWindow,
                 'avdmanager list  | awk \'/Available Android Virtual Devices:/{flag=1; next} /Available devices definitions:/{flag=0} flag\'',
@@ -125,20 +125,199 @@ class SdkManager {
         });
     }
 
+    async startBuildApp(mainWindow, device, server, live_reload) {
+        return new Promise(async (resolve) => {
+            const cmd_node = 'export NODE_ENV=' + (!server ? 'dev' : server) + '&&' + this.getBuildAppCommand(device, live_reload);
+            let ran = false;
+            let lint = false;
+            const buildApp = await new ChildProcess().executeCommand(
+                mainWindow,
+                cmd_node,
+                null,
+                'When try to build app. Something get wrong!', async (ev) => {
+                    console.log('%c ev', 'background: #222; color: #bada55', ev);
+                    if (!ev.error) {
+                        if (ev.data.includes('lint&nbsp;finished&nbsp;in')) {
+                            ran = true;
+                        }
+                        if (ev.data.includes('Run&nbsp;Successful')) {
+                            lint = true;
+                        }
+                        if (ran && lint) {
+                            return resolve({ error: false, data: null });
+                        }
+                    }
+                }, {
+                    command: true,
+                    liveOutput: true,
+                    endOutput: false,
+                    endError: true,
+                    info: true
+                }
+            );
+            if (buildApp.error) {
+                return resolve(buildApp);
+            }
+        });
+    }
+
     async startAndroidDevice(mainWindow, value = {
-        device: null,
+        device: null,//Android ID
         uninstall: null,
         live_reload: null,
         server: null,
-        avdName: null,
+        avdName: null,//ANDROID DISPLAY NAME
         createAvd: null
     }) {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Starting Android Device!', this.consoleType.info);
             await this.setConfigXMLContent(mainWindow, value.live_reload);
             await this.killPorts(mainWindow);
+            if (value.live_reload) {
+                const currentPath = await globalFunctions.getCurrentPath;
+                const manifestXml = await this.fsManager.readFile(currentPath + '/platforms/android/app/src/main/AndroidManifest.xml', {
+                    encoding: 'utf8',
+                    flag: 'r',
+                    signal: null
+                });
+                console.log('%c manifestXml', 'background: #222; color: #bada55', manifestXml);
+                const findLiveReLoadConfigExistRegex = /(\/*android:networkSecurityConfig="@xml\/network_security_config"\/*)/;
+                console.log('%c findLiveReLoadConfigExistRegex', 'background: #222; color: #bada55', findLiveReLoadConfigExistRegex);
+                const match = manifestXml.data.match(findLiveReLoadConfigExistRegex);
+                if (!match) {
+                    await this.editFiles(mainWindow);
+                }
+            }
+            //avdmanager -s create avd -k "system-images;android-31;google_apis;arm64-v8a" -n "Pixel_2" -d "pixel_2" -f
+            //emulator -avd Pixel_2 -no-snapshot-save -no-snapshot-load -no-boot-anim -netdelay none -no-snapshot -wipe-data
+            //emulator -list-avds
+            //adb -s emulator-5554 emu kill
+            //adb devices
+            if (value.createAvd) {
+                //Find available system images
+                const systemImage = 'system-images;android-31;google_apis_playstore;arm64-v8a';
+                await this.createAvd(mainWindow, systemImage, value.avdName, value.device);
+            }
 
-            return resolve(javaVersion);
+            await this.bootOnEmulator(mainWindow, value.createAvd ? value.avdName : value.device);
+            if (value.uninstall) {
+                setTimeout(async () => {
+                    const packageName = await globalFunctions.getAndroidPackageName;
+                    await this.uninstallOnEmulator(mainWindow, packageName);
+                }, 20000);
+
+            }
+
+            const startBuildApp = await this.startBuildApp(mainWindow, value.createAvd ? value.avdName : value.device, value.server, value.live_reload);
+            return resolve(startBuildApp);
+        });
+    }
+
+    async uninstallOnEmulator(mainWindow, packageName) {
+        return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Booting avd manager!', this.consoleType.info);
+            const uninstall = 'adb shell pm uninstall --user 0 ' + packageName;
+            const createAvd = await new ChildProcess().executeCommand(
+                mainWindow,
+                uninstall,
+                null,
+                'Application is not installed!.'
+            );
+
+            return resolve(createAvd);
+        });
+    }
+
+    async bootOnEmulator(mainWindow, device) {
+        return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Booting avd manager!', this.consoleType.info);
+            const boot = 'emulator -avd ' + device + ' -no-snapshot-save -no-snapshot-load -no-boot-anim -netdelay none -no-snapshot'; // -wipe-data
+            const createAvd = await new ChildProcess().executeCommand(
+                mainWindow,
+                boot,
+                null,
+                'When try to boot avd manager. Something went go wrong!.',
+                (ev) => {
+                    console.log('%c ev', 'background: #222; color: #bada55', ev);
+                    if (ev.data.includes('boot&nbsp;completed')) {
+                        return resolve({ error: false, data: null });
+                    }
+                }
+            );
+
+            return resolve(createAvd);
+        });
+    }
+
+
+    async createAvd(mainWindow, systemImage, avdName, device) {
+        return new Promise(async (resolve) => {
+            await this.sendListen(mainWindow, 'Creating avd manager!', this.consoleType.info);
+            const run = 'avdmanager -s create avd -k "' + systemImage + '" -n "' + avdName + '" -d "' + device + '" -f';
+            const createAvd = await this.childManager.executeCommand(
+                mainWindow,
+                run,
+                null,
+                'When try to create avd manager. Something went go wrong!.'
+            );
+
+            return resolve(createAvd);
+        });
+    }
+
+    getBuildAppCommand(name, liveReload) {
+        if (!liveReload) {
+            return 'ionic cordova run android --emulator --consolelogs --aot --nobrowser --iscordovaserve --target ' + name + '  -- --target ' + name + '  --consolelogs --aot';
+        }
+        return 'ionic cordova run android --emulator -l --consolelogs --aot --nobrowser --iscordovaserve --target ' + name + ' --host 0.0.0.0 --port 8100 --livereload-port 35729 --dev-logger-port 53703 -- --target ' + name + ' --consolelogs --aot -l';
+    }
+
+    async editFiles(mainWindow) {
+        return new Promise(async (resolve) => {
+            let d = [];
+            let json = await new FsManager().readFile(config_path + '/android_live_fixes.json', {
+                encoding: 'utf8',
+                flag: 'r',
+                signal: null
+            });
+            d = JSON.parse(json.data);
+            const currentPath = await globalFunctions.getCurrentPath;
+            await d.reduce((lastPromise, file_info) => {
+                return lastPromise.then(async () => {
+                    if (file_info.type === 'create') {
+                        await new FsManager().writeFile(currentPath + '/' + file_info.folder + file_info.path, '#', {
+                            encoding: 'utf8',
+                            flag: 'w',
+                            mode: 0o666,
+                            signal: null
+                        }, true);
+                    }
+                    const pathExist = await new FsManager().pathExist(currentPath + '/' + file_info.folder + file_info.path);
+                    if (!pathExist.error && pathExist.data) {
+                        const fileContent = await new FsManager().readFile(currentPath + '/' + file_info.folder + file_info.path, {
+                            encoding: 'utf8',
+                            flag: 'r',
+                            signal: null
+                        });
+                        if (!fileContent.error) {
+                            let newFileContent = fileContent.data;
+                            for (let i = 0; i < file_info.data.length; i++) {
+                                const data = file_info.data[i];
+                                const match = new RegExp(data.regex, '').exec(newFileContent);
+                                if (match) {
+                                    await this.sendListen(mainWindow, '-------- EDITING ' + file_info.path + ' ----------', this.consoleType.info);
+                                    console.log('%c MATCH:', 'background: #222; color: #bada55', file_info.path);
+                                    newFileContent = newFileContent.replace(new RegExp(data.regex, ''), file_info.type === 'remove' ? '' : file_info.type === 'add' ? '' : file_info.type === 'replace' ? data.text : file_info.type === 'create' ? data.text : '');
+                                    await new FsManager().writeFile(currentPath + '/' + file_info.folder + file_info.path, newFileContent);
+                                } else {
+                                    console.log('%c NOT MATCH:', 'background: #222; color: #bada55', file_info.path);
+                                }
+                            }
+                        }
+                    }
+                });
+            }, Promise.resolve());
+            return resolve(true);
         });
     }
 
@@ -148,11 +327,8 @@ class SdkManager {
         shutdown: true
     }) {
         return new Promise(async (resolve) => {
-            await this.sendListen(mainWindow, 'Checking port is running?!', this.consoleType.info);
-            if (data.device && data.shutdown) {
 
-            }
-            const checkPortExist = await this.childManager.executeCommand(
+            const checkPortExist = await new ChildProcess().executeCommand(
                 mainWindow,
                 'lsof -i tcp:' + port,
                 null,
@@ -183,6 +359,31 @@ class SdkManager {
                 });
                 //Then this returns a promise that will resolve when ALL are so.
                 await Promise.all(promises);
+                if (data.device && data.shutdown) {
+                    await this.sendListen(mainWindow, 'Checking adb devices!', this.consoleType.info);
+                    const openDevices = await new ChildProcess().executeCommand(
+                        mainWindow,
+                        'adb devices  | awk \'/List of devices attached/{flag=1; next} /next/{flag=0} flag\'',
+                        null,
+                        'When try to get adb devices. Something get wrong!', () => {
+                        }
+                    );
+                    if (!openDevices.error && !!openDevices.data.trim()) {
+                        openDevices.data.split('\n').reduce((promise, data, index, array) => {
+                            promise.then(async () => {
+                                const emulatorID = data.split('device')[0].trim();
+                                await this.sendListen(mainWindow, 'Killing adb device: ' + emulatorID, this.consoleType.info);
+                                const killDevices = await new ChildProcess().executeCommand(
+                                    mainWindow,
+                                    'adb -s ' + emulatorID + ' emu kill',
+                                    null,
+                                    'When try to kill adb devices. Something get wrong!', () => {
+                                    }
+                                );
+                            });
+                        }, Promise.resolve());
+                    }
+                }
             }
             return resolve({ error: false, data: pids });
         });
@@ -253,7 +454,7 @@ class SdkManager {
             await this.sendListen(mainWindow, 'Checking android available build tools versions!', this.consoleType.info);
             const availableToolsVersion = await this.childManager.executeCommand(
                 mainWindow,
-                'sdkmanager  --list | awk \'/Available/{flag=1; next} /Installed/{flag=0} flag\'',
+                'sdkmanager  --list | awk \'/Available Packages:/{flag=1; next} /Installed/{flag=0} flag\'',
                 null,
                 'When try to get available build tools versions. Something get wrong!', () => {
                 }, {
@@ -336,7 +537,7 @@ class SdkManager {
             await this.sendListen(mainWindow, 'Checking android available platforms versions!', this.consoleType.info);
             const availableToolsVersion = await this.childManager.executeCommand(
                 mainWindow,
-                'sdkmanager  --list | awk \'/Available/{flag=1; next} /Installed/{flag=0} flag\'',
+                'sdkmanager  --list | awk \'/Available Packages:/{flag=1; next} /Installed/{flag=0} flag\'',
                 null,
                 'When try to get available platforms versions. Something get wrong!', () => {
                 }, {
@@ -848,7 +1049,7 @@ export PATH=$PATH:$ANDROID_SDK_ROOT/system-images/${ systemImages.android }/${ s
             await this.sendListen(mainWindow, 'Checking android tools versions!', this.consoleType.info);
             const androidToolsVersion = await this.childManager.executeCommand(
                 mainWindow,
-                'sdkmanager  --list | awk \'/Installed/{flag=1; next} /Available/{flag=0} flag\'',
+                'sdkmanager  --list | awk \'/Installed packages:/{flag=1; next} /Available Packages:/{flag=0} flag\'',
                 null,
                 'When try to get Tools versions. Something get wrong!', () => {
                 }, {
@@ -987,10 +1188,6 @@ export PATH=$PATH:$ANDROID_SDK_ROOT/system-images/${ systemImages.android }/${ s
             if (installEmulator.error) {
                 return resolve(installEmulator);
             }
-
-            //avdmanager -s create avd -k "system-images;android-31;google_apis;arm64-v8a" -n "Pixel_2" -d "pixel_2" -f
-            //emulator -avd Pixel_2 -no-snapshot-save -no-snapshot-load -no-boot-anim -netdelay none -no-snapshot -wipe-data
-            //emulator -list-avds
 
             const androidSdkManagerVersion = await this.getAndroidSdkVersion(mainWindow);
             await this.sendListen(mainWindow, 'Android Sdk is installed!', this.consoleType.info);

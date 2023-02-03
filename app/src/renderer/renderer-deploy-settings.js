@@ -81,13 +81,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const uninstall_first_android = uninstall_first_android_input.checked;
         const live_reload_android = live_reload_android_input.checked;
         const server = androidServerElement.val();
+        console.log('%c android_avd_name_wrapper.classList.contains(\'--hidden\')', 'background: #222; color: #bada55', android_avd_name_wrapper.classList.contains('--hidden'));
         const startDevice = await window.deployForTestDetail.startAndroidDevice({
             device: value,
             uninstall: uninstall_first_android,
             live_reload: live_reload_android,
             server,
             avdName: android_avd_name_input.value,
-            createAvd: android_avd_name_wrapper.classList.contains('--hidden')
+            createAvd: !android_avd_name_wrapper.classList.contains('--hidden')
         });
         play_android_device.classList.add('--hidden');
         stop_android_device.classList.remove('--hidden');

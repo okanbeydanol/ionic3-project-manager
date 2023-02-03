@@ -13,6 +13,7 @@ class AndroidCleaner {
     childManager = new ChildProcess();
     environmentManager = new EnvironmentManager();
     sdkManager = new SdkManager();
+    fsManager = new FsManager();
     consoleType = {
         command: 'command',
         output: 'output',
@@ -27,6 +28,19 @@ class AndroidCleaner {
     async startAndroidCleaner(command, mainWindow, callback = () => {
     }) {
         return new Promise(async (resolve) => {
+            /*            const currentPath = await globalFunctions.getCurrentPath;
+                        const manifestXml = await this.fsManager.readFile(currentPath + '/platforms/android/app/src/main/AndroidManifest.xml', {
+                            encoding: 'utf8',
+                            flag: 'r',
+                            signal: null
+                        });
+                        console.log('%c manifestXml', 'background: #222; color: #bada55', manifestXml);
+                        const findLiveReLoadConfigExistRegex = /(\/!*android:networkSecurityConfig="@xml\/network_security_config"\/!*)/;
+                        console.log('%c findLiveReLoadConfigExistRegex', 'background: #222; color: #bada55', findLiveReLoadConfigExistRegex);
+                        const match = manifestXml.data.match(findLiveReLoadConfigExistRegex);
+                        if (!match) {
+                            await this.sdkManager.editFiles(mainWindow);
+                        }*/
             const environmentCheck = await this.environmentManager.environmentCheck(mainWindow, (data) => {
                 console.log('%c data', 'background: #222; color: #bada55', data);
                 callback({ type: data.data, data: data.type });
@@ -34,20 +48,20 @@ class AndroidCleaner {
             if (environmentCheck.error) {
                 return resolve(environmentCheck);
             }
-            if (command.includes('node_modules')) {
-                const refreshNodeModules = await this.refresh_only_node_modules(mainWindow);
-                if (refreshNodeModules.error) {
-                    return resolve(refreshNodeModules);
-                }
-                console.log('%c refreshNodeModules', 'background: #222; color: #bada55', refreshNodeModules);
-            }
-            if (command.includes('prepare')) {
-                const refreshAndroid = await this.refresh_only_android(mainWindow);
-                if (refreshAndroid.error) {
-                    return resolve(refreshAndroid);
-                }
-                console.log('%c refreshAndroid', 'background: #222; color: #bada55', refreshAndroid);
-            }
+            /*  if (command.includes('node_modules')) {
+                  const refreshNodeModules = await this.refresh_only_node_modules(mainWindow);
+                  if (refreshNodeModules.error) {
+                      return resolve(refreshNodeModules);
+                  }
+                  console.log('%c refreshNodeModules', 'background: #222; color: #bada55', refreshNodeModules);
+              }
+              if (command.includes('prepare')) {
+                  const refreshAndroid = await this.refresh_only_android(mainWindow);
+                  if (refreshAndroid.error) {
+                      return resolve(refreshAndroid);
+                  }
+                  console.log('%c refreshAndroid', 'background: #222; color: #bada55', refreshAndroid);
+              }*/
         });
     }
 
