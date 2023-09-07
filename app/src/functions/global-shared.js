@@ -344,6 +344,7 @@ async function readConfigXMLJson() {
         flag: 'r',
         signal: null
     }).then(async (config) => {
+        console.log('%c config', 'background: #222; color: #bada55', config);
         const parser = new xml2js.Parser({ includeWhiteChars: true });
         return await parser.parseStringPromise(config.data);
     });

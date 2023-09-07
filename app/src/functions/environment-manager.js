@@ -71,15 +71,15 @@ class EnvironmentManager {
             if (handleJava.error) {
                 return resolve(handleJava);
             }
-            callback({ type: this.environmentType.java, data: handleJava.data });
-            const handleAndroidSdk = await this.handleAndroidSdk(mainWindow);
-            if (handleAndroidSdk.error) {
-                return resolve(handleAndroidSdk);
-            }
-            callback({ type: this.environmentType.sdk, data: handleAndroidSdk.data.sdkmanager });
-            callback({ type: this.environmentType.platformTools, data: handleAndroidSdk.data.platformTools });
-            callback({ type: this.environmentType.platformsAndroid, data: handleAndroidSdk.data.platformsAndroid });
-            callback({ type: this.environmentType.buildTools, data: handleAndroidSdk.data.buildTools });
+            // callback({ type: this.environmentType.java, data: handleJava.data });
+            // const handleAndroidSdk = await this.handleAndroidSdk(mainWindow);
+            // if (handleAndroidSdk.error) {
+            //     return resolve(handleAndroidSdk);
+            // }
+            // callback({ type: this.environmentType.sdk, data: handleAndroidSdk.data.sdkmanager });
+            // callback({ type: this.environmentType.platformTools, data: handleAndroidSdk.data.platformTools });
+            // callback({ type: this.environmentType.platformsAndroid, data: handleAndroidSdk.data.platformsAndroid });
+            // callback({ type: this.environmentType.buildTools, data: handleAndroidSdk.data.buildTools });
             const handleGit = await this.handleGit(mainWindow);
             if (handleGit.error) {
                 return resolve(handleGit);

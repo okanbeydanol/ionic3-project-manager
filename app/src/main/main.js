@@ -298,7 +298,9 @@ const { XcodeManager } = require('../functions/xcode-manager');
         // Open the DevTools.
         await optionsWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/deployForTest/index.html'));
         await optionsWindow.webContents.openDevTools({ mode: 'detach' });
-        optionsWindow.show();
+        /*
+                optionsWindow.show();
+        */
 
 
         advanceSettingsWindow = new BrowserWindow({
@@ -319,13 +321,16 @@ const { XcodeManager } = require('../functions/xcode-manager');
         // Open the DevTools.
         await advanceSettingsWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/advanceSettings/index.html'));
         await advanceSettingsWindow.webContents.openDevTools({ mode: 'detach' });
-        advanceSettingsWindow.show();
+        /*
+                advanceSettingsWindow.show();
+        */
         return {
             data: true,
             error: false
         };
     };
     const get_workflows = async (owner, repo_name, access_token) => {
+        console.log('%c access_token', 'background: #222; color: #bada55', access_token);
         return new Promise(
             async (resolve) => {
                 const options = {
@@ -338,6 +343,8 @@ const { XcodeManager } = require('../functions/xcode-manager');
                     }
                 };
                 request(options, function (error, response) {
+                    console.log('%c response', 'background: #222; color: #bada55', JSON.parse(response.body));
+                    console.log('%c error', 'background: #222; color: #bada55', error);
                     if (error) return resolve({
                         data: null,
                         error: true,

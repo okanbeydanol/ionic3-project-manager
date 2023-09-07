@@ -1138,7 +1138,7 @@ export PATH=$PATH:$ANDROID_SDK_ROOT/system-images/${ systemImages.android }/${ s
     }
 
     async installAndroidSdkWithBrew(mainWindow, data = {
-        buildTools: '31.0.0',
+        buildTools: '30.0.3',
         platforms: 'android-29',
         systemImages: { type: 'google_apis_playstore', core: 'arm64-v8a', android: 'android-31' }
     }) {

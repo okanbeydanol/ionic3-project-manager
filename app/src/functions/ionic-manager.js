@@ -1,13 +1,13 @@
-const {ChildProcess} = require('./child_process');
+const { ChildProcess } = require('./child_process');
 
 class IonicManager {
     childManager = new ChildProcess();
     consoleType = {
-        command: "command",
-        output: "output",
-        error: "error",
-        info: "info"
-    }
+        command: 'command',
+        output: 'output',
+        error: 'error',
+        info: 'info'
+    };
 
     constructor() {
     }
@@ -43,7 +43,7 @@ class IonicManager {
             await this.sendListen(mainWindow, 'Trying to install ionic!', this.consoleType.info);
             const ionicVersion = await this.childManager.executeCommand(
                 mainWindow,
-                'unset npm_config_prefix&&npm install -g @ionic/cli',
+                'unset npm_config_prefix&&npm install -g @ionic/cli@6.20.8',
                 null,
                 'When try to install ionic. Something get wrong!'
             );
@@ -64,4 +64,4 @@ class IonicManager {
 }
 
 
-module.exports = {IonicManager};
+module.exports = { IonicManager };

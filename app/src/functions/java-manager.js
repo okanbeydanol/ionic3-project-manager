@@ -1,9 +1,9 @@
-const { ChildProcess } = require('./child_process');
-const { PasswordManager } = require('./password-manager');
-const { value } = require('yarn/lib/cli');
-const { ZshrcManager } = require('./zshrc-manager');
-const { FsManager } = require('./fs-manager');
-const { app } = require('electron');
+const {ChildProcess} = require('./child_process');
+const {PasswordManager} = require('./password-manager');
+const {value} = require('yarn/lib/cli');
+const {ZshrcManager} = require('./zshrc-manager');
+const {FsManager} = require('./fs-manager');
+const {app} = require('electron');
 const xml2js = require('xml2js');
 
 class JavaManager {
@@ -57,7 +57,7 @@ class JavaManager {
                     return resolve(writeFile);
                 }
             }
-            return resolve({ data: false, error: false });
+            return resolve({data: false, error: false});
         });
     }
 
@@ -238,12 +238,12 @@ class JavaManager {
                     }
                 });
             }, Promise.resolve()).finally(async () => {
-                return resolve({ error: false, data: false });
+                return resolve({error: false, data: false});
             });
         });
     }
 
-    async installJavaWithAzulSettings(mainWindow, value = '11') {
+    async installJavaWithAzulSettings(mainWindow, value = '1.8') {
         return new Promise(async (resolve) => {
             await this.sendListen(mainWindow, 'Trying fetch about latest build json information:  ' + value + ' version!', this.consoleType.info);
             const base_url = 'https://api.azul.com/zulu/download/community/v1.0/bundles/latest/';
@@ -344,7 +344,7 @@ class JavaManager {
                 flag: 'r',
                 signal: null
             }).then(async (config) => {
-                const parser = new xml2js.Parser({ includeWhiteChars: true });
+                const parser = new xml2js.Parser({includeWhiteChars: true});
                 return await parser.parseStringPromise(config.data);
             });
 
@@ -391,4 +391,4 @@ class JavaManager {
 }
 
 
-module.exports = { JavaManager };
+module.exports = {JavaManager};
