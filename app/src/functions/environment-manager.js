@@ -25,8 +25,8 @@ class EnvironmentManager {
     xcodeManager = new XcodeManager();
     nativeRunManager = new NativeRunManager();
     iosDeployManager = new IosDeployManager();
-    NodeMin = '12.22.0';
-    NodeMax = '14.17.0';
+    NodeMin = '14.17.0';
+    NodeMax = '20.9.0';
     consoleType = {
         command: 'command',
         output: 'output',
@@ -57,69 +57,73 @@ class EnvironmentManager {
     async environmentCheck(mainWindow, callback = () => {
     }) {
         return new Promise(async (resolve) => {
-            const handleXcode = await this.handleXcode(mainWindow);
-            if (handleXcode.error) {
-                return resolve(handleXcode);
-            }
-            callback({ type: this.environmentType.xcode, data: handleXcode.data });
-            const handleBrew = await this.handleBrew(mainWindow);
-            if (handleBrew.error) {
-                return resolve(handleBrew);
-            }
-            callback({ type: this.environmentType.brew, data: handleBrew.data });
-            const handleJava = await this.handleJava(mainWindow);
-            if (handleJava.error) {
-                return resolve(handleJava);
-            }
-            callback({ type: this.environmentType.java, data: handleJava.data });
-            const handleAndroidSdk = await this.handleAndroidSdk(mainWindow);
-            if (handleAndroidSdk.error) {
-                return resolve(handleAndroidSdk);
-            }
-            callback({ type: this.environmentType.sdk, data: handleAndroidSdk.data.sdkmanager });
-            callback({ type: this.environmentType.platformTools, data: handleAndroidSdk.data.platformTools });
-            callback({ type: this.environmentType.platformsAndroid, data: handleAndroidSdk.data.platformsAndroid });
-            callback({ type: this.environmentType.buildTools, data: handleAndroidSdk.data.buildTools });
-            const handleGit = await this.handleGit(mainWindow);
-            if (handleGit.error) {
-                return resolve(handleGit);
-            }
-            callback({ type: this.environmentType.git, data: handleGit.data });
-            const handleNode = await this.handleNode(mainWindow);
-            if (handleNode.error) {
-                return resolve(handleNode);
-            }
-            callback({ type: this.environmentType.node, data: handleNode.data });
             const handleGradle = await this.handleGradle(mainWindow);
             if (handleGradle.error) {
                 return resolve(handleGradle);
             }
-            callback({ type: this.environmentType.gradle, data: handleGradle.data });
-            const handleIonic = await this.handleIonic(mainWindow);
-            if (handleIonic.error) {
-                return resolve(handleIonic);
-            }
-            callback({ type: this.environmentType.ionic, data: handleIonic.data });
-            const handleCordova = await this.handleCordova(mainWindow);
-            if (handleCordova.error) {
-                return resolve(handleCordova);
-            }
-            callback({ type: this.environmentType.cordova, data: handleCordova.data });
-            const handleCordovaRes = await this.handleCordovaRes(mainWindow);
-            if (handleCordovaRes.error) {
-                return resolve(handleCordovaRes);
-            }
-            callback({ type: this.environmentType.cordovaRes, data: handleCordovaRes.data });
-            const handleNativeRun = await this.handleNativeRun(mainWindow);
-            if (handleNativeRun.error) {
-                return resolve(handleNativeRun);
-            }
-            callback({ type: this.environmentType.nativeRun, data: handleNativeRun.data });
-            const handleIosDeploy = await this.handleIosDeploy(mainWindow);
-            if (handleIosDeploy.error) {
-                return resolve(handleIosDeploy);
-            }
-            callback({ type: this.environmentType.iosDeploy, data: handleIosDeploy.data });
+            /*   const handleXcode = await this.handleXcode(mainWindow);
+               if (handleXcode.error) {
+                   return resolve(handleXcode);
+               }
+               callback({ type: this.environmentType.xcode, data: handleXcode.data });
+               const handleBrew = await this.handleBrew(mainWindow);
+               if (handleBrew.error) {
+                   return resolve(handleBrew);
+               }
+               callback({ type: this.environmentType.brew, data: handleBrew.data });
+               const handleJava = await this.handleJava(mainWindow);
+               if (handleJava.error) {
+                   return resolve(handleJava);
+               }
+               callback({ type: this.environmentType.java, data: handleJava.data });
+               const handleAndroidSdk = await this.handleAndroidSdk(mainWindow);
+               if (handleAndroidSdk.error) {
+                   return resolve(handleAndroidSdk);
+               }
+               callback({ type: this.environmentType.sdk, data: handleAndroidSdk.data.sdkmanager });
+               callback({ type: this.environmentType.platformTools, data: handleAndroidSdk.data.platformTools });
+               callback({ type: this.environmentType.platformsAndroid, data: handleAndroidSdk.data.platformsAndroid });
+               callback({ type: this.environmentType.buildTools, data: handleAndroidSdk.data.buildTools });
+               const handleGit = await this.handleGit(mainWindow);
+               if (handleGit.error) {
+                   return resolve(handleGit);
+               }
+               callback({ type: this.environmentType.git, data: handleGit.data });
+               const handleNode = await this.handleNode(mainWindow);
+               if (handleNode.error) {
+                   return resolve(handleNode);
+               }
+               callback({ type: this.environmentType.node, data: handleNode.data });
+               const handleGradle = await this.handleGradle(mainWindow);
+               if (handleGradle.error) {
+                   return resolve(handleGradle);
+               }
+               callback({ type: this.environmentType.gradle, data: handleGradle.data });
+               const handleIonic = await this.handleIonic(mainWindow);
+               if (handleIonic.error) {
+                   return resolve(handleIonic);
+               }
+               callback({ type: this.environmentType.ionic, data: handleIonic.data });
+               const handleCordova = await this.handleCordova(mainWindow);
+               if (handleCordova.error) {
+                   return resolve(handleCordova);
+               }
+               callback({ type: this.environmentType.cordova, data: handleCordova.data });
+               const handleCordovaRes = await this.handleCordovaRes(mainWindow);
+               if (handleCordovaRes.error) {
+                   return resolve(handleCordovaRes);
+               }
+               callback({ type: this.environmentType.cordovaRes, data: handleCordovaRes.data });
+               const handleNativeRun = await this.handleNativeRun(mainWindow);
+               if (handleNativeRun.error) {
+                   return resolve(handleNativeRun);
+               }
+               callback({ type: this.environmentType.nativeRun, data: handleNativeRun.data });
+               const handleIosDeploy = await this.handleIosDeploy(mainWindow);
+               if (handleIosDeploy.error) {
+                   return resolve(handleIosDeploy);
+               }
+               callback({ type: this.environmentType.iosDeploy, data: handleIosDeploy.data });*/
             return resolve({ error: false });
         });
     }
@@ -299,6 +303,7 @@ class EnvironmentManager {
     async handleGradle(mainWindow) {
         return new Promise(async (resolve) => {
             let gradleVersion = await this.GradleManager.getGradleVersion(mainWindow);
+            console.log(gradleVersion);
             if (gradleVersion.error) {
                 await this.sendListen(mainWindow, 'Trying install gradle!');
                 gradleVersion = await this.tryInstallGradleWithManually(mainWindow);

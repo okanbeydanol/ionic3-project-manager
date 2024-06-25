@@ -1,7 +1,7 @@
 'use strict';
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const request = require('request');
+const request = require('postman-request');
 const { FsManager } = require('../functions/fs-manager');
 const { AndroidCleaner } = require('../functions/android-cleaner');
 const { BrewManager } = require('../functions/brew-manager');
@@ -165,8 +165,11 @@ const { XcodeManager } = require('../functions/xcode-manager');
                 road: 'ApplicationStart/main.js:startRead:access_token'
             };
         }
+        console.log('%c access_token', 'background: #222; color: #bada55', access_token);
 
         const userInfo = await get_user_info(access_token);
+        console.log('%c userInfo', 'background: #222; color: #bada55', userInfo);
+
         if (userInfo.error) {
             return userInfo;
         }
@@ -219,10 +222,13 @@ const { XcodeManager } = require('../functions/xcode-manager');
     };
     const openMainWindow = async () => {
         configData = await readConfigXml();
+       console.log('%c configData', 'background: #222; color: #bada55', configData);
         if (!configData.data) {
             return configData;
         }
         windowData = await fetch_data();
+       console.log('%c windowData', 'background: #222; color: #bada55', windowData);
+
         dragDropWindow && dragDropWindow.close();
         mainWindow = new BrowserWindow({
             width: 780,
@@ -243,6 +249,8 @@ const { XcodeManager } = require('../functions/xcode-manager');
         await mainWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/projectDetail/index.html'));
         await mainWindow.webContents.openDevTools({ mode: 'detach', activate: true });
         mainWindow.show();
+        console.log('%c mainWindow21212', 'background: #222; color: #bada55', windowData);
+
         /*   mainWindow.on('focus', () => {
                settingsWindow && settingsWindow.focus();
                deployWindow && deployWindow.focus();
@@ -280,52 +288,57 @@ const { XcodeManager } = require('../functions/xcode-manager');
         const settingsWindowGetSize = settingsWindow.getSize();
 
 
-        optionsWindow = new BrowserWindow({
-            width: 540,
-            height: 840,
-            webPreferences: {
-                devTools: true,
-                disableHtmlFullscreenWindowResize: true,
-                nodeIntegration: true,
-                enableRemoteModule: true,
-                webSecurity: true,
-                experimentalFeatures: false,
-                contextIsolation: true,
-                preload: path.resolve(app.getAppPath(), 'app/src/preload/preload.js'),
-                show: false
-            }
-        });
-        // Open the DevTools.
-        await optionsWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/deployForTest/index.html'));
-        await optionsWindow.webContents.openDevTools({ mode: 'detach' });
-        optionsWindow.show();
+        // optionsWindow = new BrowserWindow({
+        //     width: 540,
+        //     height: 840,
+        //     webPreferences: {
+        //         devTools: true,
+        //         disableHtmlFullscreenWindowResize: true,
+        //         nodeIntegration: true,
+        //         enableRemoteModule: true,
+        //         webSecurity: true,
+        //         experimentalFeatures: false,
+        //         contextIsolation: true,
+        //         preload: path.resolve(app.getAppPath(), 'app/src/preload/preload.js'),
+        //         show: false
+        //     }
+        // });
+        // // Open the DevTools.
+        // await optionsWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/deployForTest/index.html'));
+        // await optionsWindow.webContents.openDevTools({ mode: 'detach' });
+        // /*
+        //         optionsWindow.show();
+        // */
 
 
-        advanceSettingsWindow = new BrowserWindow({
-            width: 1250,
-            height: 824,
-            webPreferences: {
-                devTools: true,
-                disableHtmlFullscreenWindowResize: true,
-                nodeIntegration: true,
-                enableRemoteModule: true,
-                webSecurity: true,
-                experimentalFeatures: false,
-                contextIsolation: true,
-                preload: path.resolve(app.getAppPath(), 'app/src/preload/preload.js'),
-                show: false
-            }
-        });
-        // Open the DevTools.
-        await advanceSettingsWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/advanceSettings/index.html'));
-        await advanceSettingsWindow.webContents.openDevTools({ mode: 'detach' });
-        advanceSettingsWindow.show();
+        // advanceSettingsWindow = new BrowserWindow({
+        //     width: 1250,
+        //     height: 824,
+        //     webPreferences: {
+        //         devTools: true,
+        //         disableHtmlFullscreenWindowResize: true,
+        //         nodeIntegration: true,
+        //         enableRemoteModule: true,
+        //         webSecurity: true,
+        //         experimentalFeatures: false,
+        //         contextIsolation: true,
+        //         preload: path.resolve(app.getAppPath(), 'app/src/preload/preload.js'),
+        //         show: false
+        //     }
+        // });
+        // // Open the DevTools.
+        // await advanceSettingsWindow.loadFile(path.resolve(app.getAppPath(), 'app/src/frontend/advanceSettings/index.html'));
+        // await advanceSettingsWindow.webContents.openDevTools({ mode: 'detach' });
+        /*
+                advanceSettingsWindow.show();
+        */
         return {
             data: true,
             error: false
         };
     };
     const get_workflows = async (owner, repo_name, access_token) => {
+        console.log('%c access_token', 'background: #222; color: #bada55', access_token);
         return new Promise(
             async (resolve) => {
                 const options = {
@@ -338,6 +351,8 @@ const { XcodeManager } = require('../functions/xcode-manager');
                     }
                 };
                 request(options, function (error, response) {
+                    console.log('%c response', 'background: #222; color: #bada55', JSON.parse(response.body));
+                    console.log('%c error', 'background: #222; color: #bada55', error);
                     if (error) return resolve({
                         data: null,
                         error: true,
@@ -416,7 +431,7 @@ const { XcodeManager } = require('../functions/xcode-manager');
                 }
                 const gitglobalFunctions = await new FsManager().readFile(project_path + '/' + folders.GIT_FOLDER + '/' + folders.GIT_CONFIG_FILE);
                 if (!gitglobalFunctions.error) {
-                    const github_url_regex = /(\/*\[remote "origin"]\n	url = \S+\/*)/;
+                    const github_url_regex = /(\/*\[remote \S+]\n	url = \S+\/*)/;
                     const projectTitleMatch = github_url_regex.exec(gitglobalFunctions.data);
                     github_project_url = projectTitleMatch[0].split('=')[1].trim();
                 } else {

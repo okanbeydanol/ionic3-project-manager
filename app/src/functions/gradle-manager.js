@@ -34,7 +34,7 @@ class GradleManager {
         });
     }
 
-    async installGradleManually(mainWindow, value = '6.5') {
+    async installGradleManually(mainWindow, value = '7.6') {
         return new Promise(async (resolve) => {
 
             await this.sendListen(mainWindow, 'Trying to fetch all gradle versions!', this.consoleType.info);

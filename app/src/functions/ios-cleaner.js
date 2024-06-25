@@ -177,7 +177,7 @@ class IosCleaner {
             if (editFilesBefore.error) {
                 return resolve(editFilesBefore);
             }
-            await this.sendListen(mainWindow, '--------BEFORE BUILD ANDROID FIXES END----------', this.consoleType.info);
+            await this.sendListen(mainWindow, '--------BEFORE BUILD IOS FIXES END----------', this.consoleType.info);
 
 
             await this.sendListen(mainWindow, 'Build Ios!', this.consoleType.info);
@@ -198,7 +198,7 @@ class IosCleaner {
             if (editFilesAfter.error) {
                 return resolve(editFilesAfter);
             }
-            await this.sendListen(mainWindow, '--------AFTER BUILD ANDROID FIXES END----------', this.consoleType.info);
+            await this.sendListen(mainWindow, '--------AFTER BUILD IOS FIXES END----------', this.consoleType.info);
             return resolve({ error: false, data: null });
         });
     }

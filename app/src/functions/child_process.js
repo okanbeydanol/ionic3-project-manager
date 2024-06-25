@@ -6,74 +6,23 @@ const { globalFunctions } = require('./global-shared');
 
 class ChildProcess {
     colors = [
-        {
-            code: '[0m',
-            color: 'none'
-        },
-        {
-            code: '[0;30m',
-            color: '#000000'
-        },
-        {
-            code: '[0;31m',
-            color: '#FF0000'
-        },
-        {
-            code: '[1;30m',
-            color: '#808080'
-        },
-        {
-            code: '[1;31m',
-            color: '#FFCCCB'
-        },
-        {
-            code: '[0;32m',
-            color: '#008000'
-        },
-        {
-            code: '[1;32m',
-            color: '#90EE90'
-        },
-        {
-            code: '[0;33m',
-            color: '#A52A2A'
-        },
-        {
-            code: '[1;33m',
-            color: '#FFFF00'
-        },
-        {
-            code: '[0;34m',
-            color: '#0000FF'
-        },
-        {
-            code: '[1;34m',
-            color: '#ADD8E6'
-        },
-        {
-            code: '[0;35m',
-            color: '#800080'
-        },
-        {
-            code: '[1;35m',
-            color: '#8467D7'
-        },
-        {
-            code: '[0;36m',
-            color: '#00FFFF'
-        },
-        {
-            code: '[1;36m',
-            color: '#E0FFFF'
-        },
-        {
-            code: '[0;37m',
-            color: '#D3D3D3'
-        },
-        {
-            code: '[1;37m',
-            color: '#FFFFFF'
-        }
+        { code: '[0m', color: 'none' },
+        { code: '[0;30m', color: '#000000' },
+        { code: '[0;31m', color: '#FF0000' },
+        { code: '[1;30m', color: '#808080' },
+        { code: '[1;31m', color: '#FFCCCB' },
+        { code: '[0;32m', color: '#008000' },
+        { code: '[1;32m', color: '#90EE90' },
+        { code: '[0;33m', color: '#A52A2A' },
+        { code: '[1;33m', color: '#FFFF00' },
+        { code: '[0;34m', color: '#0000FF' },
+        { code: '[1;34m', color: '#ADD8E6' },
+        { code: '[0;35m', color: '#800080' },
+        { code: '[1;35m', color: '#8467D7' },
+        { code: '[0;36m', color: '#00FFFF' },
+        { code: '[1;36m', color: '#E0FFFF' },
+        { code: '[0;37m', color: '#D3D3D3' },
+        { code: '[1;37m', color: '#FFFFFF' }
     ];
 
     settingsJSON = null;
@@ -88,59 +37,37 @@ class ChildProcess {
         info: 'info'
     };
 
-    constructor() {
-    }
+    constructor() {}
 
+    async execCommandPrivate(command, callback = () => {}, mainWindow, options = {}) {
+        options = {
+            stdout: 'inherit',
+            encoding: 'utf8',
+            signal: null,
+            timeout: 0,
+            maxBuffer: 10000 * 10000,
+            killSignal: 'SIGTERM',
+            cwd: null,
+            env: null,
+            shell: '/bin/zsh',
+            ...options
+        };
 
-    async execCommandPrivate(command, callback = () => {
-    }, mainWindow, options = {
-        stdout: 'inherit',
-        encoding: 'utf8',
-        signal: null,
-        timeout: 0,
-        maxBuffer: 10000 * 10000, //increase here
-        killSignal: 'SIGTERM',
-        cwd: null,
-        env: null,
-        shell: '/bin/zsh'
-    }) {
         return new Promise(async (resolve) => {
             this.settingsJSON = await globalFunctions.getSettingsJSON;
             options.cwd = this.settingsJSON.current_path;
             this.controller = new AbortController();
-            const { signal } = this.controller;
-            options.signal = options.signal ? options.signal : signal;
-            this.childProcessExec = exec
-            (
-                command,
-                options
-                , async (error, stdout, stderr) => {
-                    if (error) {
-                        callback({
-                            data: false,
-                            error: true,
-                            type: 'error:end',
-                            message: error.message,
-                            road: 'child_process.js:execCommand:exec'
-                        });
-                        return resolve(false);
-                    }
-                    callback({
-                        data: stderr,
-                        error: false,
-                        type: 'stdout:end',
-                        signal: options.signal,
-                        road: 'child_process.js:execCommand:exec'
-                    });
-                    callback({
-                        data: stdout,
-                        error: false,
-                        type: 'stderr:end',
-                        signal: options.signal,
-                        road: 'child_process.js:execCommand:exec'
-                    });
-                    return resolve(true);
-                });
+            options.signal = options.signal || this.controller.signal;
+            this.childProcessExec = exec(command, options, async (error, stdout, stderr) => {
+                if (error) {
+                    callback({ data: false, error: true, type: 'error:end', message: error.message, road: 'child_process.js:execCommand:exec' });
+                    return resolve(false);
+                }
+                callback({ data: stderr, error: false, type: 'stdout:end', signal: options.signal, road: 'child_process.js:execCommand:exec' });
+                callback({ data: stdout, error: false, type: 'stderr:end', signal: options.signal, road: 'child_process.js:execCommand:exec' });
+                return resolve(true);
+            });
+
             this.childProcessExec.stdout.setEncoding('utf8');
             this.childProcessExec.stderr.setEncoding('utf8');
 
@@ -150,12 +77,7 @@ class ChildProcess {
             }
             this.stdoutOn = this.childProcessExec.stdout.on('data', async (data) => {
                 const dat = await this.coloredTerminal(data);
-                callback({
-                    data: dat.join('\n'),
-                    error: false,
-                    signal: options.signal,
-                    type: 'stdout'
-                });
+                callback({ data: dat.join('\n'), error: false, signal: options.signal, type: 'stdout' });
             });
 
             if (this.stderrOn !== null) {
@@ -164,98 +86,65 @@ class ChildProcess {
             }
             this.stderrOn = this.childProcessExec.stderr.on('data', async (data) => {
                 const dat = await this.coloredTerminal(data);
-                callback({
-                    data: dat.join('\n'),
-                    error: false,
-                    signal: options.signal,
-                    type: 'stderr'
-                });
+                callback({ data: dat.join('\n'), error: false, signal: options.signal, type: 'stderr' });
             });
+
             if (this.execClose !== null) {
                 await this.childProcessExec.removeListener('close');
                 this.execClose = null;
             }
-            this.execClose = this.childProcessExec.on('close', exitCode => {
+            this.execClose = this.childProcessExec.on('close', (exitCode) => {
                 setTimeout(() => {
-                    callback({
-                        data: false,
-                        error: false,
-                        type: 'close'
-                    });
+                    callback({ data: false, error: false, type: 'close' });
                     this.execClose = null;
                     this.stdoutOn = null;
                     this.stderrOn = null;
                 }, 1000);
             });
-
         });
     }
 
     async coloredTerminal(data) {
-        return new Promise(async (resolve) => {
+        return new Promise((resolve) => {
             const split = data.replace(/ /g, '&nbsp;').split(/\n/g);
-            let coloredText = '';
             const dat = [];
-            await split.reduce((lastPromise, s, currentIndex, array) => {
+            split.reduce((lastPromise, s) => {
                 return lastPromise.then(async () => {
                     let cloneS = s;
-                    let text = '';
-                    let t = '';
-                    const regex = /(\[[0-9][0-9]?m)(?<=\[[0-9][0-9]?m)[\ \.\[\]\:\/\,\&\;\(\)\#\$\}\{\_\+\*\?\%\^\=\"\'\-a-zA-Z0-9]+(?=\[[0-9][0-9]?m)(\[[0-9][0-9]?m)/g;
+                    const regex = /(\[[0-9][0-9]?m)[\ \.\[\]\:\/\,\&\;\(\)\#\$\}\{\_\+\*\?\%\^\=\"\'\-a-zA-Z0-9]+(\[[0-9][0-9]?m)/g;
                     let m;
                     regex.lastIndex = 0;
-                    await (async () => {
-                        while ((m = regex.exec(s)) !== null) {
-                            if (m.index === regex.lastIndex) {
-                                regex.lastIndex++;
+                    while ((m = regex.exec(s)) !== null) {
+                        if (m.index === regex.lastIndex) regex.lastIndex++;
+                        m.forEach((match, groupIndex) => {
+                            if (groupIndex === 0) {
+                                cloneS = cloneS.replace(match, '');
+                            } else if (groupIndex === 1) {
+                                cloneS = cloneS.replace(match, `<div style="color:${this.getColor(match)};">`);
+                            } else if (groupIndex === 2) {
+                                cloneS = cloneS.replace(match, '</div>');
                             }
-                            m.forEach((match, groupIndex) => {
-                                if (groupIndex === 0) {
-                                    text = text.replace(match, '');
-                                    coloredText = match;
-                                    t = match;
-                                } else if (groupIndex === 1) {
-                                    if (match === '[33m') {
-                                        coloredText = coloredText.replace(match, `<div style="color:#b28122!important;">`);
-                                    } else if (match === '[2m') {
-                                        coloredText = coloredText.replace(match, `<div style="color:#837a65!important;">`);
-                                    } else if (match === '[41m') {
-                                        coloredText = coloredText.replace(match, `<div style="color:#9c937a!important;background: #cc241c!important;height: 18px;">`);
-                                    } else {
-                                        coloredText = coloredText.replace(match, `<div style="color:#9c937a!important;">`);
-                                    }
-                                } else if (groupIndex === 2) {
-                                    if (match === '[39m') {
-                                        coloredText = coloredText.replace(match, `</div>`);
-                                    } else if (match === '[22m') {
-                                        coloredText = coloredText.replace(match, '</div>');
-                                    } else if (match === '[49m') {
-                                        coloredText = coloredText.replace(match, '</div>');
-                                    } else {
-                                        coloredText = coloredText.replace(match, '</div>');
-                                    }
-                                }
-                            });
-                            cloneS = cloneS.replace(t, coloredText);
-                        }
-                    })();
-                    cloneS = `<div style="display: flex!important;">${ cloneS }</div>`;
-                    const regexFind = /(\/*\[[0-1];[0-9][0-9]m\/*)/g.exec(cloneS);
-                    if (regexFind) {
-                        const find = this.colors.find(o => o.code === regexFind[0]);
-                        if (find) {
-                            dat.push('<label id="color-label" style="color:' + find.color + '">' + cloneS.replace(/(\/*\[[0-1];[0-9][0-9]m\/*)/g, '').replace(/(\/*\[[0-1]m\/*)/g, '') + '</label>');
-                        } else {
-                            dat.push('<label id="color-label" style="color:#a39f9f">' + cloneS.replace(/(\/*\[[0-1];[0-9][0-9]m\/*)/g, '').replace(/(\/*\[[0-1]m\/*)/g, '') + '</label>');
-                        }
-                    } else {
-                        dat.push('<label id="color-label-no-color" style="color:#a39f9f">' + cloneS + '</label>');
+                        });
                     }
+                    cloneS = `<div style="display: flex!important;">${cloneS}</div>`;
+                    dat.push(this.formatColoredText(cloneS));
                 });
-            }, Promise.resolve()).finally(async () => {
-                return resolve(dat);
-            });
+            }, Promise.resolve()).finally(() => resolve(dat));
         });
+    }
+
+    getColor(code) {
+        const color = this.colors.find(c => c.code === code);
+        return color ? color.color : '#a39f9f';
+    }
+
+    formatColoredText(text) {
+        const regexFind = /(\/*\[[0-1];[0-9][0-9]m\/*)/g.exec(text);
+        if (regexFind) {
+            return `<label id="color-label" style="color:${this.getColor(regexFind[0])}">${text.replace(/(\/*\[[0-1];[0-9][0-9]m\/*)/g, '').replace(/(\/*\[[0-1]m\/*)/g, '')}</label>`;
+        } else {
+            return `<label id="color-label-no-color" style="color:#a39f9f">${text}</label>`;
+        }
     }
 
     async executeCommand(mainWindow, command, exCommand = null, errorMessage = null, callback = () => {
